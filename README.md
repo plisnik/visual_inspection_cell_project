@@ -14,7 +14,6 @@ The project aims to improve quality control processes by automating the detectio
 ## Technologies
 - **Python** for control scripts and automation.
 - **OpenCV** for image processing and computer vision tasks.
-- **URScript** for direct communication with the UR robot.
 - **RTDE** for data exchange between the robot and external systems.
 - **NumPy** for numerical computations.
 
@@ -22,3 +21,7 @@ The project aims to improve quality control processes by automating the detectio
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/visual_inspection_cell_project.git
+
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
