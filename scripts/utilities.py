@@ -99,7 +99,6 @@ def fk_default(joint_angles: np.ndarray, a: np.ndarray, d: np.ndarray, alpha: np
 
     return T
 
-
 def pose_vector_to_tf_matrix(params: np.ndarray) -> np.ndarray:
     """
     Creates a 4x4 transformation matrix from a vector of position and rotation.
@@ -171,6 +170,65 @@ def tf_matrix_to_pose_vector(transformation_matrix: np.ndarray) -> np.ndarray:
     # Construct and return the 6D pose vector
     return np.array([tx, ty, tz, rx, ry, rz])
 
+def decompose_tf_matrix(T_list: list) -> tuple:
+    """
+    Decomposes a list of 4x4 transformation matrices into their rotational and translational components.
+
+    This function takes a list of homogeneous transformation matrices and separates each matrix into its
+    corresponding rotation matrix and translation vector.
+
+    Parameters:
+        T_list (list): A list of 4x4 homogeneous transformation matrices.
+
+    Returns:
+        tuple: A tuple containing:
+            - R_list (list): A list of 3x3 rotation matrices.
+            - t_list (list): A list of 3x1 translation vectors.
+
+    Notes:
+        - Each transformation matrix is expected to be in the form:
+          [[R, t],
+           [0, 1]]
+          where R is the rotation matrix and t is the translation vector.
+        - The function reshapes the translation vector into a 3x1 format for consistency.
+    """
+    R_list = []  # List to store rotation matrices
+    t_list = []  # List to store translation vectors
+
+    # Loop through each transformation matrix in the provided list
+    for T in T_list:
+        R_list.append(T[:3, :3])    # Extract and append the rotation matrix (3x3)
+        t_list.append(T[:3, 3].reshape(3, 1))  # Extract and append the translation vector (3x1)
+
+    return R_list, t_list  # Return the lists of rotation matrices and translation vectors
+
+def invert_transformations(T_list: list) -> list:
+    """
+    Inverts a list of 4x4 transformation matrices.
+
+    This function takes a list of homogeneous transformation matrices and computes their inverses.
+
+    Parameters:
+        T_list (list): A list of 4x4 homogeneous transformation matrices.
+
+    Returns:
+        list: A list containing the inverted 4x4 transformation matrices.
+
+    Notes:
+        - Each transformation matrix is expected to be in the form:
+          [[R, t],
+           [0, 1]]
+          where R is the rotation matrix and t is the translation vector.
+        - The inversion of a transformation matrix is computed using NumPy's linear algebra module.
+    """
+    T_inv_list = []  # List to store inverted transformation matrices
+
+    # Loop through each transformation matrix in the provided list
+    for T in T_list:
+        T_inv = np.linalg.inv(T)  # Compute the inverse of the transformation matrix
+        T_inv_list.append(T_inv)  # Append the inverted matrix to the list
+
+    return T_inv_list  # Return the list of inverted transformation matrices
 
 def batch_convert_poses_to_matrices(input_folder: str, output_folder: str) -> None:
     """
