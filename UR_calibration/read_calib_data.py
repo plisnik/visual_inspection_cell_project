@@ -148,22 +148,3 @@ def load_mounting_calibration_parameters(file_path: str) -> Tuple[np.ndarray, np
         raise ValueError(f"Error evaluating calibration parameters in {file_path}: {str(e)}")
 
 
-# Ukázka použití:
-
-urcontrol_file = 'urcontrol.conf'
-calibration_file = 'calibration.conf'
-
-# Načtení a zpracování souboru urcontrol.conf
-a, d, alpha = load_dh_parameters_from_urcontrol(urcontrol_file)
-print("DH Parameters from urcontrol.conf:")
-print(f"a = {a}")
-print(f"d = {d}")
-print(f"alpha = {alpha}")
-
-# Načtení a zpracování souboru calibration.conf
-delta_theta, delta_a, delta_d, delta_alpha = load_mounting_calibration_parameters(calibration_file)
-print("\nDH Parameters from calibration.conf:")
-print(f"delta_a = {delta_a}")
-print(f"delta_d = {delta_d}")
-print(f"delta_theta = {delta_theta}")
-print(f"delta_alpha = {delta_alpha}")

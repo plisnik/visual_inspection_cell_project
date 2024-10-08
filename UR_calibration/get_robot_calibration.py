@@ -14,6 +14,7 @@ urcontrol_file = 'UR_calibration/urcontrol.conf'                           # Pat
 download_sftp_file(sftp_host, sftp_port, sftp_user, sftp_pass, remote_file_path, calibration_file)
 download_sftp_file(sftp_host, sftp_port, sftp_user, sftp_pass, remote_file_path_2, urcontrol_file)
 
+## Reading
 # Loading and processing the urcontrol.conf file
 a, d, alpha = load_dh_parameters_from_urcontrol(urcontrol_file)
 print("DH Parameters from urcontrol.conf:")
