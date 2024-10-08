@@ -2,7 +2,7 @@ import sys
 import os
 import numpy as np
 from scipy.optimize import least_squares
-from get_robot_calibration import load_dh_parameters_from_urcontrol
+from read_calib_data import load_dh_parameters_from_urcontrol
 from typing import List
 from transformation_utils import fk_with_corrections, load_npy_data
 
@@ -57,12 +57,11 @@ def main():
     print(current_dir)
 
     data_set = "data/data_set_00"
-    #data_set = "visual_inspection_cell_project/data/data_set_00"
-    urcontrol_file = 'UR_calibration/urcontrol.conf'
+    urcontrol_file = os.path.join(current_dir,'UR_calibration/urcontrol.conf')
 
     joints_folder = os.path.join(data_set,'joints_pose')
     target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
-
+    
     thetas_list = load_npy_data(joints_folder)
     target_matrices = load_npy_data(target_matrices_folder)
 
