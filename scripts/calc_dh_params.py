@@ -1,12 +1,10 @@
 import sys
-if '../' + 'src' not in sys.path:
-    sys.path.append('../' + 'src')
-import numpy as np
 import os
+import numpy as np
 from scipy.optimize import least_squares
 from get_robot_calibration import load_dh_parameters_from_urcontrol
 from typing import List
-from utils.transformation_utils import fk_with_corrections, load_npy_data
+from transformation_utils import fk_with_corrections, load_npy_data
 
 def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarray, d: np.ndarray, 
                        alpha: np.ndarray, target_matrices: List[np.ndarray]) -> np.ndarray:
@@ -54,35 +52,44 @@ def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarr
     return np.concatenate(errors)
 
 
-data_set = "data/data_set_00"
-urcontrol_file = 'UR_calibration/urcontrol.conf'
+def main():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    print(current_dir)
 
-joints_folder = os.path.join(data_set,'joints_pose')
-target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
+    data_set = "data/data_set_00"
+    #data_set = "visual_inspection_cell_project/data/data_set_00"
+    urcontrol_file = 'UR_calibration/urcontrol.conf'
 
-thetas_list = load_npy_data(joints_folder)
-target_matrices = load_npy_data(target_matrices_folder)
+    joints_folder = os.path.join(data_set,'joints_pose')
+    target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
 
-# Loading and processing the urcontrol.conf file
-a, d, alpha = load_dh_parameters_from_urcontrol(urcontrol_file)
-print("DH Parameters from urcontrol.conf:")
-print(f"a = {a}")
-print(f"d = {d}")
-print(f"alpha = {alpha}")
+    thetas_list = load_npy_data(joints_folder)
+    target_matrices = load_npy_data(target_matrices_folder)
 
-# Initial estimate for the correction parameters delta_a, delta_d, delta_alpha, delta_theta
-x0 = np.zeros(24)
+    # Loading and processing the urcontrol.conf file
+    a, d, alpha = load_dh_parameters_from_urcontrol(urcontrol_file)
+    print("DH Parameters from urcontrol.conf:")
+    print(f"a = {a}")
+    print(f"d = {d}")
+    print(f"alpha = {alpha}")
 
-# Optimalization
-result = least_squares(objective_function, x0, args=(thetas_list, a, d, alpha, target_matrices))
+    # Initial estimate for the correction parameters delta_a, delta_d, delta_alpha, delta_theta
+    x0 = np.zeros(24)
 
-# Resulting correction parameters
-delta_theta_opt = result.x[:6]
-delta_a_opt = result.x[6:12]
-delta_d_opt = result.x[12:18]
-delta_alpha_opt = result.x[18:24]
+    # Optimalization
+    result = least_squares(objective_function, x0, args=(thetas_list, a, d, alpha, target_matrices))
 
-print("Optimized delta_a:", delta_a_opt)
-print("Optimized delta_d:", delta_d_opt)
-print("Optimized delta_alpha:", delta_alpha_opt)
-print("Optimized delta_theta:", delta_theta_opt)
+    # Resulting correction parameters
+    delta_theta_opt = result.x[:6]
+    delta_a_opt = result.x[6:12]
+    delta_d_opt = result.x[12:18]
+    delta_alpha_opt = result.x[18:24]
+
+    print("Optimized delta_a:", delta_a_opt)
+    print("Optimized delta_d:", delta_d_opt)
+    print("Optimized delta_alpha:", delta_alpha_opt)
+    print("Optimized delta_theta:", delta_theta_opt)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
