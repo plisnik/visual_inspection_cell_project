@@ -6,9 +6,9 @@ sftp_port = 22              # Port for SFTP (typically 22)
 sftp_user = 'root'          # Username for SFTP
 sftp_pass = 'easybot'       # Password for SFTP
 remote_file_path = '/root/.urcontrol/calibration.conf'      # Path to file on server
-calibration_file = 'UR_calibration/calibration.conf'                       # Path to save file on local PC
+calibration_file = 'src/UR_calibration/calibration.conf'                       # Path to save file on local PC
 remote_file_path_2 = '/root/.urcontrol/urcontrol.conf'      # Path to file on server
-urcontrol_file = 'UR_calibration/urcontrol.conf'                           # Path to save file on local PC
+urcontrol_file = 'src/UR_calibration/urcontrol.conf'                           # Path to save file on local PC
 
 # Call function to download files
 download_sftp_file(sftp_host, sftp_port, sftp_user, sftp_pass, remote_file_path, calibration_file)
