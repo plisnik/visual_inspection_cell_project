@@ -54,9 +54,8 @@ def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarr
 
 def main():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
 
-    data_set = "data/data_set_00"
+    data_set = "data_set_00"
     urcontrol_file = os.path.join(current_dir,'UR_calibration/urcontrol.conf')
 
     joints_folder = os.path.join(data_set,'joints_pose')
