@@ -71,6 +71,35 @@ def fk_with_corrections(joint_angles: np.ndarray, a: np.ndarray, d: np.ndarray, 
 
     return T
 
+def fk_default(joint_angles: np.ndarray, a: np.ndarray, d: np.ndarray, alpha: np.ndarray) -> np.ndarray:
+    """
+    Computes the forward kinematics for a robotic manipulator based on the given joint angles and DH parameters,
+    without applying any corrections (delta values).
+
+    Parameters:
+        joint_angles (np.ndarray): Array of joint angles in radians for each joint.
+        a (np.ndarray): Array of link lengths (distance along the x-axis to the next joint).
+        d (np.ndarray): Array of link offsets (distance along the z-axis between links).
+        alpha (np.ndarray): Array of link twists (angles in radians between the z-axes of two consecutive frames).
+
+    Returns:
+        np.ndarray: A 4x4 homogeneous transformation matrix representing the transformation from the base to the tool (end-effector).
+
+    Notes:
+        - The resulting matrix represents the overall transformation from the base of the robot to the end-effector.
+        - Each individual transformation matrix is computed using the DH convention, without applying any correction factors.
+    """
+    # Initialize the total transformation matrix as an identity matrix
+    T = np.eye(4)
+
+    # Compute the total transformation matrix
+    for i in range(6):
+        T_i = dh_matrix(joint_angles[i], a[i], d[i], alpha[i])
+        T = T @ T_i  # Matrix multiplication
+
+    return T
+
+
 def pose_vector_to_tf_matrix(params: np.ndarray) -> np.ndarray:
     """
     Creates a 4x4 transformation matrix from a vector of position and rotation.
@@ -109,6 +138,39 @@ def pose_vector_to_tf_matrix(params: np.ndarray) -> np.ndarray:
     transformation_matrix[:3, 3] = [tx, ty, tz]  # Place translation vector
     
     return transformation_matrix
+
+def tf_matrix_to_pose_vector(transformation_matrix: np.ndarray) -> np.ndarray:
+    """
+    Converts a 4x4 transformation matrix into a 6D vector representing position and rotation.
+
+    This function takes a 4x4 homogeneous transformation matrix and extracts
+    the translation and rotation information to construct a 6D vector.
+
+    Parameters:
+        transformation_matrix (np.ndarray): A 4x4 homogeneous transformation matrix
+
+    Returns:
+        np.ndarray: A 6D vector in the form [tx, ty, tz, rx, ry, rz]
+            where [tx, ty, tz] is the translation (in any unit)
+            and [rx, ry, rz] is the rotation (in radians)
+
+    Notes:
+        - The rotation is computed using the rotation matrix extracted from the transformation matrix.
+        - The rotation vector is derived using the rotation matrix to represent rotations about the fixed axes.
+    """
+    # Extract translation vector from the transformation matrix
+    tx, ty, tz = transformation_matrix[:3, 3]
+
+    # Extract rotation matrix
+    rotation_matrix = transformation_matrix[:3, :3]
+    
+    # Calculate rotation vector from the rotation matrix
+    rotation = R.from_matrix(rotation_matrix)
+    rx, ry, rz = rotation.as_rotvec()
+
+    # Construct and return the 6D pose vector
+    return np.array([tx, ty, tz, rx, ry, rz])
+
 
 def batch_convert_poses_to_matrices(input_folder: str, output_folder: str) -> None:
     """
@@ -195,7 +257,119 @@ def load_npy_data(folder: str) -> List[np.ndarray]:
     except Exception as e:
         raise Exception(f"An error occurred while processing the folder {folder}: {str(e)}")
 
+def calculate_error_between_matrices(mat1: np.ndarray, mat2: np.ndarray) -> np.ndarray:
+    """
+    Computes the error vector (translational and rotational errors) between two transformation matrices.
 
+    This function takes two 4x4 homogeneous transformation matrices and calculates
+    the difference in their translation and rotation components.
+
+    Parameters:
+        mat1 (np.ndarray): The first 4x4 transformation matrix.
+        mat2 (np.ndarray): The second 4x4 transformation matrix.
+
+    Returns:
+        np.ndarray: An error vector in the form [tx_error, ty_error, tz_error, rx_error, ry_error, rz_error],
+            where tx, ty, tz are the translational errors and rx, ry, rz are the rotational errors (in radians).
+
+    Notes:
+        - The translational error is calculated as the difference between the translation components of the matrices.
+        - The rotational error is calculated by converting the rotation matrices to rotation vectors and finding their difference.
+    """
+    # Extracting translations from both matrices
+    translation1 = mat1[:3, 3]
+    translation2 = mat2[:3, 3]
+    
+    # Calculate translational error (difference in translations)
+    translation_error = translation1 - translation2
+    
+    # Extracting rotation matrices from both matrices
+    rotation_matrix1 = mat1[:3, :3]
+    rotation_matrix2 = mat2[:3, :3]
+    
+    # Convert rotation matrices to rotation vectors
+    rot_vec1 = R.from_matrix(rotation_matrix1).as_rotvec(degrees=False)
+    rot_vec2 = R.from_matrix(rotation_matrix2).as_rotvec(degrees=False)
+    
+    # Calculate rotational error
+    rotation_error = rot_vec1 - rot_vec2
+    
+    # Combine translational and rotational errors into a single vector
+    error_vector = np.concatenate([translation_error, rotation_error])
+    
+    return error_vector
+
+def extract_joint_angles_from_txt(filename: str) -> np.ndarray:
+    """
+    Reads joint angles from a text file.
+
+    This function opens a text file and reads a single line containing joint angles
+    in the format [angle1, angle2, angle3, angle4, angle5, angle6].
+
+    Parameters:
+        filename (str): Path to the text file containing joint angles.
+
+    Returns:
+        np.ndarray: An array of 6 float values representing joint angles in radians.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        ValueError: If the file format is incorrect or cannot be parsed.
+
+    Notes:
+        - The file should contain a single line with 6 comma-separated values.
+        - Values in the file should already be in radians.
+        - The function assumes the angles are enclosed in square brackets.
+    """
+    try:
+        with open(filename, 'r') as file:
+            line = file.readline().strip()  # Read first line and remove whitespace
+            # Remove square brackets and split the line by comma
+            angles = line.strip('[]').split(',')
+            # Convert values from string to float (already in radians)
+            joint_angles = np.array([float(angle) for angle in angles])
+        return joint_angles
+    except FileNotFoundError:
+        raise FileNotFoundError(f"The file {filename} was not found.")
+    except ValueError as e:
+        raise ValueError(f"Error parsing the file {filename}: {str(e)}")
+
+def read_position_from_txt(filename: str) -> np.ndarray:
+    """
+    Reads position and orientation data from a text file.
+
+    This function opens a text file and reads a single line containing
+    position and orientation data in the format [tx, ty, tz, rx, ry, rz].
+
+    Parameters:
+        filename (str): Path to the text file containing position and orientation data.
+
+    Returns:
+        np.ndarray: An array of 6 float values representing position (in units used in the file)
+                    and orientation (in radians) [tx, ty, tz, rx, ry, rz].
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        ValueError: If the file format is incorrect or cannot be parsed.
+
+    Notes:
+        - The file should contain a single line with 6 comma-separated values.
+        - The first three values (tx, ty, tz) represent translation.
+        - The last three values (rx, ry, rz) represent rotation in radians.
+        - The function assumes the values are enclosed in square brackets.
+    """
+    try:
+        with open(filename, 'r') as file:
+            line = file.readline().strip()  # Read first line and remove whitespace
+            # Remove square brackets and split the line by comma
+            coordinates = line.strip('[]').split(',')
+            # Convert values from string to float
+            coordinate_xyzr = np.array([float(coordinate) for coordinate in coordinates])
+        return coordinate_xyzr
+    except FileNotFoundError:
+        raise FileNotFoundError(f"The file {filename} was not found.")
+    except ValueError as e:
+        raise ValueError(f"Error parsing the file {filename}: {str(e)}")
 
 
 
