@@ -83,19 +83,13 @@ def main():
         obj_pose_list.append(object_pose)
 
 
+    #----------------------------------------------------------------------------------------------------
 
     exit("Zpráva: Ukončení skriptu.")
 
-    input_folder='robot_pose_set_00'
-
-    # Složka s transformačními maticemi
-    folder_path_robot_pose = 'robot_pose_tf_set_00'
-    os.makedirs(folder_path_robot_pose, exist_ok=True)
-
-    #process_positon_files(input_folder, folder_path_robot_pose)
-
-    # Načtení všech transformačních matic do seznamu
-    rob_pose_list = load_transformation_matrices(folder_path_robot_pose)
+    # Načtení všech pozic robota do seznamu
+    robot_pose_folder = os.path.join(data_set, 'robot_pose')
+    rob_pose_list = utilities.load_npy_data(robot_pose_folder)
 
     # inicializace matic - dále trochu změna na maticích - záleží na směrech atd
     A, B = [], []

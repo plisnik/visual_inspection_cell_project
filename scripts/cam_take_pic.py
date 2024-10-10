@@ -110,14 +110,10 @@ finally:
     pipeline.stop()
     cv2.destroyAllWindows()
 
-
-# Vstupní a výstupní složky - DODĚLAT
-input_folder = tcp_folder
-output_folder = os.path.join(data_folder_name, f"robot_pose_tf_set_{new_data_folder_number:02d}")
-
 # Vytvoření složky pro transformační matice
-os.makedirs(output_folder, exist_ok=True)
+tf_matrix_folder = os.path.join(data_folder_name, f"robot_pose_tf")
+os.makedirs(tf_matrix_folder, exist_ok=True)
 
 # Zpracování souborů
-utilities.batch_convert_poses_to_matrices(input_folder, output_folder)
+utilities.batch_convert_poses_to_matrices(tcp_folder, tf_matrix_folder)
 
