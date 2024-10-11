@@ -98,7 +98,7 @@ def main():
     inv_obj_pose_tf_list = utilities.invert_tf_matrices(obj_pose_tf_list)
     R_target2cam, t_target2cam = utilities.decompose_tf_matrices(inv_obj_pose_tf_list)
     
-    # Perform Hand-Eye calibration
+    # Perform Hand-Eye calibration - Eye-to-Hand
     R_base2camera, t_base2camera = cv2.calibrateHandEye(
         R_gripper2base, t_gripper2base,
         R_cam2target, t_cam2target,
@@ -114,7 +114,7 @@ def main():
     print(T_base2camera)
 
     
-    # Perform Robot-World/Hand-Eye calibration
+    # Perform Robot-World/Hand-Eye calibration - Eye-to-Hand
     R_camera2base_W, t_camera2base_W, R_target2gripper_W, t_target2gripper_W = cv2.calibrateRobotWorldHandEye(
         R_gripper2base, t_gripper2base,
         R_target2cam, t_target2cam,
