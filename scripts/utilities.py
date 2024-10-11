@@ -170,7 +170,7 @@ def tf_matrix_to_pose_vector(transformation_matrix: np.ndarray) -> np.ndarray:
     # Construct and return the 6D pose vector
     return np.array([tx, ty, tz, rx, ry, rz])
 
-def decompose_tf_matrix(T_list: list) -> tuple:
+def decompose_tf_matrices(T_list: list) -> tuple:
     """
     Decomposes a list of 4x4 transformation matrices into their rotational and translational components.
 
@@ -202,7 +202,7 @@ def decompose_tf_matrix(T_list: list) -> tuple:
 
     return R_list, t_list  # Return the lists of rotation matrices and translation vectors
 
-def invert_transformations(T_list: list) -> list:
+def invert_tf_matrices(T_list: list) -> list:
     """
     Inverts a list of 4x4 transformation matrices.
 

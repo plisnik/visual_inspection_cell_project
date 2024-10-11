@@ -94,7 +94,7 @@ def get_object_pose(object_points: np.ndarray, image_points: np.ndarray,
 
     return rvec.flatten(), tvec.flatten()
 
-def calibrate_lens(image_list: list, pattern_points: np.ndarray) -> tuple:
+def calibrate_lens(image_list: list, pattern_points: np.ndarray, pattern_size: tuple) -> tuple:
     """
     Calibrates the camera lens using a list of images containing a chessboard pattern.
 
@@ -125,7 +125,7 @@ def calibrate_lens(image_list: list, pattern_points: np.ndarray) -> tuple:
         h, w = img.shape[:2]
         
         # Find corners in the chessboard pattern
-        found, corners = find_corners(img)
+        found, corners = find_corners(img,pattern_size)
         if not found:
             raise Exception("Chessboard calibration failed: Unable to find corners in the image.")
 
