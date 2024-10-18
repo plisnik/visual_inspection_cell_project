@@ -5,6 +5,7 @@ from scipy.optimize import least_squares
 from read_calib_data import load_dh_parameters_from_urcontrol
 from typing import List
 from utilities import fk_with_corrections, load_npy_data
+import nevergrad as ng
 
 def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarray, d: np.ndarray, 
                        alpha: np.ndarray, target_matrices: List[np.ndarray]) -> np.ndarray:
@@ -42,8 +43,7 @@ def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarr
     # For each set of angles and target transformation matrix
     for thetas, target_matrix in zip(thetas_list, target_matrices):
         # Calculate TCP with corrections
-        T = fk_with_corrections(thetas, a, d, alpha, 
-                                                     delta_theta, delta_a, delta_d, delta_alpha)
+        T = fk_with_corrections(thetas, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
         
         # Difference between calculated and measured transformation matrix
         error_matrix = target_matrix - T
@@ -76,7 +76,7 @@ def main():
 
     # Optimalization
     result = least_squares(objective_function, x0, args=(thetas_list, a, d, alpha, target_matrices))
-
+    
     # Resulting correction parameters
     delta_theta_opt = result.x[:6]
     delta_a_opt = result.x[6:12]
@@ -87,7 +87,7 @@ def main():
     print("Optimized delta_d:", delta_d_opt)
     print("Optimized delta_alpha:", delta_alpha_opt)
     print("Optimized delta_theta:", delta_theta_opt)
-
+    
 
 if __name__ == '__main__':
     sys.exit(main())

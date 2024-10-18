@@ -102,7 +102,7 @@ def main():
     R_base2camera, t_base2camera = cv2.calibrateHandEye(
         R_gripper2base, t_gripper2base,
         R_cam2target, t_cam2target,
-        method=cv2.CALIB_HAND_EYE_TSAI # You can choose another method, e.g., 'CALIB_HAND_EYE_PARK', etc.
+        method=cv2.CALIB_HAND_EYE_PARK # You can choose another method, e.g., 'CALIB_HAND_EYE_PARK', etc.
     )
 
     # Construct the resulting transformation matrix X (robot base to camera)
@@ -142,24 +142,5 @@ def main():
     print(np.linalg.inv(T_gripper2target))
 
 
-
-
-
-
 if __name__ == '__main__':
     sys.exit(main())
-
-
-'''
-# inicializace matic 
-    A, B = [], []
-
-    for i in range(1,len(image_list)):
-        p = rob_pose_list[i-1], obj_pose_list[i-1]
-        n = rob_pose_list[i], obj_pose_list[i]
-        A.append(np.dot(inv(p[0]), n[0]))
-        B.append(np.dot(inv(p[1]), n[1]))
-
-    inv_A = invert_transformations(A)
-
-'''
