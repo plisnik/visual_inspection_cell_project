@@ -2,7 +2,7 @@ import sys
 import os
 import numpy as np
 from scipy.optimize import least_squares
-from read_calib_data import load_dh_parameters_from_urcontrol
+from read_calib_data import load_dh_parameters_from_urcontrol, load_mounting_calibration_parameters
 from typing import List
 from utilities import fk_with_corrections, load_npy_data
 import nevergrad as ng
@@ -57,6 +57,7 @@ def main():
 
     data_set = "data_set_00"
     urcontrol_file = os.path.join(current_dir,'UR_calibration/urcontrol.conf')
+    calibration_file = os.path.join(current_dir,'UR_calibration/calibration.conf')
 
     joints_folder = os.path.join(data_set,'joints_pose')
     target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
@@ -76,7 +77,7 @@ def main():
 
     # Optimalization
     result = least_squares(objective_function, x0, args=(thetas_list, a, d, alpha, target_matrices))
-    
+
     # Resulting correction parameters
     delta_theta_opt = result.x[:6]
     delta_a_opt = result.x[6:12]
@@ -87,6 +88,15 @@ def main():
     print("Optimized delta_d:", delta_d_opt)
     print("Optimized delta_alpha:", delta_alpha_opt)
     print("Optimized delta_theta:", delta_theta_opt)
+
+    # Loading and processing the calibrATION.conf file
+    delta_theta, delta_a, delta_d, delta_alpha = load_mounting_calibration_parameters(calibration_file)
+    print("DH Parameters from calibration.conf:")
+    print("Delta_a:", delta_a)
+    print("Delta_d:", delta_d)
+    print("Delta_alpha:", delta_alpha)
+    print("Delta_theta:", delta_theta)
+
     
 
 if __name__ == '__main__':

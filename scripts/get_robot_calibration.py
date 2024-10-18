@@ -7,9 +7,9 @@ def main():
     sftp_port = 22              # Port for SFTP (typically 22)
     sftp_user = 'root'          # Username for SFTP
     sftp_pass = 'easybot'       # Password for SFTP
-    remote_file_path = '/root/.urcontrol/calibration.conf'      # Path to file on server
+    remote_file_path = '/root/.urcontrol/calibration.conf'              # Path to file on server
     calibration_file = 'scripts/UR_calibration/calibration.conf'        # Path to save file on local PC
-    remote_file_path_2 = '/root/.urcontrol/urcontrol.conf'      # Path to file on server
+    remote_file_path_2 = '/root/.urcontrol/urcontrol.conf'              # Path to file on server
     urcontrol_file = 'scripts/UR_calibration/urcontrol.conf'            # Path to save file on local PC
 
     # Call function to download files
