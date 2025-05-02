@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>test_1</class>
+ <widget class="QDialog" name="test_1">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>774</width>
+    <height>418</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Test 1</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog {
+	background-color: #ffffff;
+}</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="3" rowspan="8">
+    <widget class="QLabel" name="image_label">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>400</width>
+       <height>400</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>No Image</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="minimumSize">
+      <size>
+       <width>350</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>350</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QGroupBox {
+	border: none;
+	padding: 0px;
+	margin: 0px;
+}
+
+QGroupBox::title {
+	color: #000036;
+}</string>
+     </property>
+     <property name="title">
+      <string/>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0">
+      <item row="2" column="1" colspan="3">
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Policy::Expanding</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="8" column="1" colspan="3">
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="10" column="1">
+       <widget class="QPushButton" name="b_close">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+          <fontweight>DemiBold</fontweight>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Close</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QPushButton" name="b_freedrive_on">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Freedrive ON</string>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="2">
+       <widget class="QPushButton" name="b_start_test">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+          <kerning>false</kerning>
+          <fontweight>DemiBold</fontweight>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Start test</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2" colspan="2">
+       <widget class="QPushButton" name="b_freedrive_off">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Freedrive OFF</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="2">
+       <widget class="QLabel" name="label_2">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>300</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+          <fontweight>DemiBold</fontweight>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">color:#000036;</string>
+        </property>
+        <property name="text">
+         <string>Set the robot according to the configuration:
+Eye-in-hand: Move the robot so that the camera can detect the test objects and their storage places. 
+Eye-to-hand: Move the robot to the starting position to begin the test.
+The image must always be in focus.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QPushButton" name="b_light_off_init">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Light OFF</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QPushButton" name="b_light_on_init">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3e37ff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px; /* Upraví vnitřní prostor tlačítka */
+	color: white;
+}
+
+QPushButton:hover {
+    background-color: #000036;
+}
+
+QPushButton:disabled {
+    background-color: #808080; /* Šedá barva pro deaktivované tlačítko */
+    color: #c0c0c0; /* Světlejší šedá barva textu */
+    border: none;
+}</string>
+        </property>
+        <property name="text">
+         <string>Light ON</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

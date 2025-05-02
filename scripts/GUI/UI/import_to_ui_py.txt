@@ -1,0 +1,12 @@
+import sys
+import os
+sys.path.append(os.getcwd())
+from scripts.GUI.Icons import icons_rc
+
+
+nebo (asi lepší)
+
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from Icons import icons_rc

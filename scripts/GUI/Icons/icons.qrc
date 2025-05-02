@@ -1,0 +1,17 @@
+<RCC>
+  <qresource prefix="Icons">
+    <file>icons8-video-100.png</file>
+    <file>icons8-math-96.png</file>
+    <file>icons8-robotic-arm-100.png</file>
+    <file>icons8-upload_math-96.png</file>
+    <file>icons8-settings-512.png</file>
+    <file>icons8-downloading-updates-96.png</file>
+    <file>icons8-upload-96.png</file>
+    <file>icons8-robotic-arm-64.png</file>
+    <file>fast-forward-regular-180_blue000036.png</file>
+    <file>target-lock-regular-180_white.png</file>
+    <file>home-solid-60_white.png</file>
+    <file>bxs-home.svg</file>
+    <file>home-solid-24.png</file>
+  </qresource>
+</RCC>
