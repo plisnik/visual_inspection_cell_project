@@ -1,5 +1,7 @@
 import numpy as np
 import time
+import rtde_control
+import rtde_receive
 from pypylon import pylon
 import cv2
 import os
@@ -15,7 +17,7 @@ light_on = True                 # Turn on the light?
 
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-data_set = "data_sets\\basic_data_set_in_mereni_02_05"
+data_set = "data_sets\\basic_data_set_in_mereni_25_04"
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
 joints_pose_folder = "joints_pose"
@@ -42,13 +44,12 @@ distance = 0.33     # in metre
 
 def main():
     print("Starting calibration...")
-    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
     # Switching on the light
     if light_on:
-        if not utilities.enable_digital_output_2(robot, light_output_id):
+        if not utilities.enable_digital_output(ip_address, light_output_id):
             raise RuntimeError("Failed to turn on the light")
-
+        
     # Initialize camera
     camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
     camera.Open()
@@ -58,7 +59,7 @@ def main():
     camera.UserSetLoad.Execute()
 
     # Try to enable freedrive mode
-    success, message = utilities.enable_freedrive_mode_2(robot)
+    success, message = utilities.enable_freedrive_mode(ip_address)
     if success:
         print("Freedrive mode enabled")
     else:
@@ -102,13 +103,12 @@ def main():
         print("Image successfully captured.")
 
     # Try to disable freedrive mode
-    success, message = utilities.disable_freedrive_mode_2(robot)
+    success, message = utilities.disable_freedrive_mode(ip_address)
     if success:
         print("Freedrive mode disabled")
     else:
         raise RuntimeError(f"Failed to disable freedrive mode: {message}")
-    print("čekám")
-    time.sleep(10)
+    time.sleep(1)
 
     img_height, img_width, channel = image.shape
 
@@ -147,8 +147,11 @@ def main():
         # Combine lists: origin point + valid camera positions + circular points/_2
         points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points_2
 
-    first_TCP = np.array(robot.get_actual_tcp_pose())
+
+    rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
+    first_TCP = rtde_r.getActualTCPPose()
     first_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
+    rtde_r.disconnect()
     
     # Calibration files
     urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
@@ -182,8 +185,10 @@ def main():
         point_base_tf = first_tf @ point_tf
         point_base = utilities.tf_matrix_to_pose_vector(point_base_tf)
 
-        robot.moveL(point_base, speed=0.25, acceleration=0.25)
-        time.sleep(0.5)
+        rtde_c = rtde_control.RTDEControlInterface(ip_address)
+        rtde_c.moveL(point_base, speed=0.25, acceleration=0.25)
+        time.sleep(1)
+        rtde_c.disconnect()
 
         grab_result = camera.GrabOne(2000)
         if not grab_result.GrabSucceeded():
@@ -194,8 +199,10 @@ def main():
         path = utilities_camera.save_current_frame(image_path, image)
         print(f"Saved image: {path}")
 
-        actual_TCP = np.array(robot.get_actual_tcp_pose())
-        actual_joints = np.array(robot.get_actual_joints())
+        rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
+        actual_TCP = rtde_r.getActualTCPPose()
+        actual_joints = np.array(rtde_r.getActualQ())
+        rtde_r.disconnect()
 
         tf_matrix = utilities.pose_vector_to_tf_matrix(actual_TCP)
         robot_fk = utilities.fk_with_corrections(actual_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
@@ -206,12 +213,14 @@ def main():
 
     camera.Close()
 
-    robot.moveL(first_TCP, speed=0.1, acceleration=0.15)
+    rtde_c = rtde_control.RTDEControlInterface(ip_address)
+    rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
     time.sleep(1)
+    rtde_c.disconnect()
 
     # Switch off light
     if light_on:
-        utilities.disable_digital_output_2(robot, light_output_id)
+        utilities.disable_digital_output(ip_address, light_output_id)
 
 if __name__ == "__main__":
     main()

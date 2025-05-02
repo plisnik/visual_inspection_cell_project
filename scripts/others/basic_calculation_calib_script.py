@@ -2,15 +2,13 @@ import numpy as np
 import cv2
 import os
 import sys
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities, utilities_camera
-from ur_robot_calib_params import read_calib_data
+from utils import utilities
 
 # ==== PARAMETRY – uprav si podle potřeby ====
-calib_config = 1                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
+calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-calib_method = "LI (world)"
+calib_method = "TSAI"
 # Mapping method names to cv2 constants
 method_map = {
     'TSAI': cv2.CALIB_HAND_EYE_TSAI,
@@ -22,7 +20,7 @@ method_map = {
     'SHAH (world)': cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH,
 }
 
-data_set = "data_sets\\basic_data_set_to_22_4"
+data_set = "data_sets/basic_data_set_in_mereni_02_05"
 
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
@@ -31,10 +29,10 @@ robot_pose_folder = "robot_pose_tf"
 obj_pose_folder = "obj_pose_tf"
 
 # === Parametry ChArUco desky ===
-square_length = 0.016
-marker_length = 0.012
-board_rows = 8
-board_cols = 10
+square_length = 0.03
+marker_length = 0.022
+board_rows = 6
+board_cols = 8
 board_size = (board_cols, board_rows)
 board_width = board_cols * square_length
 board_height = board_rows * square_length
@@ -43,9 +41,6 @@ charuco_board = cv2.aruco.CharucoBoard(board_size, square_length, marker_length,
 charuco_board.setLegacyPattern(True)
 charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 
-# Parametry pro generování bodů
-scale_factor = 0.65  # faktor pro obdélník v obraze
-distance = 0.25     # v metrech
 # ============================================
 
 def main():
@@ -57,12 +52,10 @@ def main():
 
     # Vytvoření podsložek a aktualizace proměnných na jejich plné cesty
     image_path = os.path.join(data_set, image_folder)
-    tcp_path = os.path.join(data_set, tcp_pose_folder)
-    joints_path = os.path.join(data_set, joints_pose_folder)
     robot_path = os.path.join(data_set, robot_pose_folder)
     obj_path = os.path.join(data_set, obj_pose_folder)
 
-    print("\nSpouštím výpočet kalibrace...")
+    print("Spouštím výpočet kalibrace...")
     camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities.calibrate_camera_with_charuco(
         image_path, charuco_detector, charuco_board, robot_path, obj_path
     )
@@ -78,17 +71,17 @@ def main():
     print(f"X_matrix:\n{X_matrix}")
     print(f"Pose vector: {pose_vector}")
 
-    # file_path = "calibration_results/basic_calib_1_to_xx_4.yaml"
-    # # Save calibration data using the updated function
-    # success, message = utilities.save_calibration_results_yaml(
-    #     file_path,
-    #     camera_matrix,
-    #     dist_coeffs,
-    #     X_matrix,
-    #     pose_vector,
-    #     calib_config,
-    #     calib_method
-    # )
+    file_path = "calibration_results/basic_calib_in_02_05.yaml"
+    # Save calibration data using the updated function
+    success, message = utilities.save_calibration_results_yaml(
+        file_path,
+        camera_matrix,
+        dist_coeffs,
+        X_matrix,
+        pose_vector,
+        calib_config,
+        calib_method
+    )
 
 if __name__ == "__main__":
     main()

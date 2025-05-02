@@ -7,14 +7,14 @@ from utils import utilities
 
 # EYE-TO-HAND: KAMERA MIMO ROBOTA
 # Definování cesty ke složce s datasetem
-data_set = "data_sets\\basic_data_set_to"
+data_set = "data_sets\dataset_20250328_094912"
 
 obj_pose_folder = os.path.join(data_set, 'obj_pose_tf')  # Path to the folder containing camera pictures
 robot_pose_folder = os.path.join(data_set, 'robot_pose_tf')  # Path to the folder containing camera pictures
 rob_pose_tf_list = utilities.load_npy_data(robot_pose_folder)
 obj_pose_tf_list = utilities.load_npy_data(obj_pose_folder)
 
-# Invert the object pose transformation matrices and decompose them
+# Invert the robot pose transformation matrices and decompose them
 inv_rob_pose_tf_list = utilities.invert_tf_matrices(rob_pose_tf_list)
 R_base2grip, t_base2grip = utilities.decompose_tf_matrices(inv_rob_pose_tf_list)
 # Decompose the transformation matrices into rotation and translation components

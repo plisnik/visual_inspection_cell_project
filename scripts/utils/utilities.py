@@ -16,6 +16,7 @@ import zipfile
 from datetime import datetime
 from pypylon import pylon
 import cv2
+from utils.robot_interface import RobotInterface
 
 def dh_matrix(theta: float, a: float, d: float, alpha: float) -> np.ndarray:
     """
@@ -443,6 +444,14 @@ def read_position_from_txt(filename: str) -> np.ndarray:
     except ValueError as e:
         raise ValueError(f"Error parsing the file {filename}: {str(e)}")
 
+def check_robot_connection_2(robot: RobotInterface) -> bool:
+    try:
+        state = robot.isConnected()
+        return state
+    except Exception as e:
+        print(f"Chyba při připojení k robotu: {e}")
+        return False
+
 def check_robot_connection(ip_address: str) -> bool:
     try:
         rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
@@ -452,6 +461,19 @@ def check_robot_connection(ip_address: str) -> bool:
     except Exception as e:
         print(f"Chyba při připojení k robotu: {e}")
         return False
+
+def enable_digital_output_2(robot: RobotInterface, output_id: int) -> bool:
+    """ Zapne digitální výstup na UR robotu a vrátí jeho stav. """
+    try:
+        robot.setStandardDigitalOutput(output_id, True)
+        time.sleep(0.1)  # Počkáme, aby se výstup správně nastavil
+
+        state = robot.getStandardDigitalOutput(output_id)
+
+        return state
+
+    except Exception as e:
+        return False  # Pokud nastane chyba, vrátíme False jako indikaci neúspěchu
 
 def enable_digital_output(ip_address: str, output_id: int) -> bool:
     """ Zapne digitální výstup na UR robotu a vrátí jeho stav. """
@@ -469,6 +491,19 @@ def enable_digital_output(ip_address: str, output_id: int) -> bool:
 
     except Exception as e:
         return False  # Pokud nastane chyba, vrátíme False jako indikaci neúspěchu
+
+def disable_digital_output_2(robot: RobotInterface, output_id: int) -> bool:
+    """ Vypne digitální výstup na UR robotu a vrátí jeho stav. """
+    try:
+        robot.setStandardDigitalOutput(output_id, False)
+        time.sleep(0.1)
+
+        state = robot.getStandardDigitalOutput(output_id)
+
+        return state
+
+    except Exception:
+        return True  # Pokud nastane chyba, vrátíme True jako indikaci, že výstup není LOW
 
 def disable_digital_output(ip_address: str, output_id: int) -> bool:
     """ Vypne digitální výstup na UR robotu a vrátí jeho stav. """
@@ -720,21 +755,38 @@ def eye_in_hand_calibration(
 
     # Decompose transformation matrices of the robot (gripper to base)
     R_grip2base, t_grip2base = decompose_tf_matrices(rob_pose_tf_list)
+    # Invert the robot pose transformation matrices and decompose them
+    inv_rob_pose_tf_list = invert_tf_matrices(rob_pose_tf_list)
+    R_base2grip, t_base2grip = decompose_tf_matrices(inv_rob_pose_tf_list)
 
     # Decompose transformation matrices of the object
     R_target2cam, t_target2cam = decompose_tf_matrices(obj_pose_tf_list)
 
-    # Perform Hand-Eye calibration
-    R_cam2grip, t_cam2grip = cv2.calibrateHandEye(
-        R_grip2base, t_grip2base,
-        R_target2cam, t_target2cam,
-        method=calibration_method
-    )
+    if calibration_method in (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+        # Perform Robot-World/Hand-Eye calibration
+        R_base2target_W, t_base2target_W, R_grip2cam_W, t_grip2cam_W = cv2.calibrateRobotWorldHandEye(
+            R_target2cam, t_target2cam,
+            R_base2grip, t_base2grip,
+            method=calibration_method # You can choose another method, e.g., 'CALIB_ROBOT_WORLD_HAND_EYE_SHAH', etc.
+        )
 
-    # Construct the final transformation matrix
-    T_cam2grip = np.eye(4)
-    T_cam2grip[:3, :3] = np.array(R_cam2grip)
-    T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
+        T_grip2cam_W = np.eye(4)
+        T_grip2cam_W[:3, :3] = np.array(R_grip2cam_W)
+        T_grip2cam_W[:3, 3] = np.array(t_grip2cam_W).flatten()
+        T_cam2grip = np.linalg.inv(T_grip2cam_W)
+
+    else:
+        # Perform Hand-Eye calibration
+        R_cam2grip, t_cam2grip = cv2.calibrateHandEye(
+            R_grip2base, t_grip2base,
+            R_target2cam, t_target2cam,
+            method=calibration_method
+        )
+
+        # Construct the final transformation matrix
+        T_cam2grip = np.eye(4)
+        T_cam2grip[:3, :3] = np.array(R_cam2grip)
+        T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
     # Convert to pose vector
     pose_vector = tf_matrix_to_pose_vector(T_cam2grip)
@@ -780,18 +832,35 @@ def eye_to_hand_calibration(
 
     # Decompose transformation matrices of the object
     R_target2cam, t_target2cam = decompose_tf_matrices(obj_pose_tf_list)
+    inv_obj_pose_tf_list = invert_tf_matrices(obj_pose_tf_list)
+    R_cam2target, t_cam2target = decompose_tf_matrices(inv_obj_pose_tf_list)
+    
 
-    # Perform Hand-Eye calibration
-    R_cam2base, t_cam2base = cv2.calibrateHandEye(
-        R_base2grip, t_base2grip,
-        R_target2cam, t_target2cam,
-        method=calibration_method
-    )
+    if calibration_method in (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+        # Perform Robot-World/Hand-Eye calibration
+        R_base2cam_W, t_base2cam_W, R_grip2target_W, t_grip2target_W = cv2.calibrateRobotWorldHandEye(
+            R_cam2target, t_cam2target,
+            R_base2grip, t_base2grip,
+            method=calibration_method # You can choose another method, e.g., 'CALIB_ROBOT_WORLD_HAND_EYE_SHAH', etc.
+        )
 
-    # Construct the final transformation matrix
-    T_cam2base = np.eye(4)
-    T_cam2base[:3, :3] = np.array(R_cam2base)
-    T_cam2base[:3, 3] = np.array(t_cam2base).flatten()
+        T_base2cam_W = np.eye(4)
+        T_base2cam_W[:3, :3] = np.array(R_base2cam_W)
+        T_base2cam_W[:3, 3] = np.array(t_base2cam_W).flatten()
+        T_cam2base = np.linalg.inv(T_base2cam_W)
+
+    else:
+        # Perform Hand-Eye calibration
+        R_cam2base, t_cam2base = cv2.calibrateHandEye(
+            R_base2grip, t_base2grip,
+            R_target2cam, t_target2cam,
+            method=calibration_method
+        )
+
+        # Construct the final transformation matrix
+        T_cam2base = np.eye(4)
+        T_cam2base[:3, :3] = np.array(R_cam2base)
+        T_cam2base[:3, 3] = np.array(t_cam2base).flatten()
 
     # Convert to pose vector
     pose_vector = tf_matrix_to_pose_vector(T_cam2base)
@@ -918,6 +987,8 @@ def calibrate_camera_with_charuco(
             raise ValueError("Camera calibration failed.")
 
         # Process object positions
+        # Check if the folder is empty
+        save_enabled = not os.listdir(obj_pose_folder)  # True if folder is empty
         obj_pose_tf_list = []
         for tvec, rvec in zip(tvecs, rvecs):
             tvec = tvec.flatten()
@@ -927,8 +998,10 @@ def calibrate_camera_with_charuco(
             pose_vector = np.hstack((tvec, rvec))
             transformation_matrix = pose_vector_to_tf_matrix(pose_vector)
 
-            # Save transformation matrix
-            save_obj_pose_data(obj_pose_folder, transformation_matrix)
+            # Save transformation matrix only if the folder was initially empty
+            if save_enabled:
+                save_obj_pose_data(obj_pose_folder, transformation_matrix)
+
             obj_pose_tf_list.append(transformation_matrix)
 
         # Load robot positions
@@ -1184,6 +1257,29 @@ def save_joints_data(directory: str, data: np.ndarray) -> None:
     except Exception as e:
         raise IOError(f"Failed to save joint data: {str(e)}")
 
+def enable_freedrive_mode_2(robot: RobotInterface) -> Tuple[bool, str]:
+    """
+    Activates the robot's freedrive mode, allowing manual movement without resistance.
+
+    Args:
+        ip_address (str): IP address of the robot.
+
+    Returns:
+        Tuple[bool, str]: 
+            - `True` if freedrive mode was successfully activated, otherwise `False`.
+            - Status message.
+    """
+    try:
+        status = robot.freedriveMode()
+
+        if status == 7:  # Ensures all necessary status flags are set
+            return True, "Freedrive mode activated."
+        else:
+            return False, f"Failed to activate freedrive mode. {status}"
+
+    except Exception as e:
+        return False, f"Error activating freedrive mode: {str(e)}"
+
 def enable_freedrive_mode(ip_address: str) -> Tuple[bool, str]:
     """
     Activates the robot's freedrive mode, allowing manual movement without resistance.
@@ -1211,6 +1307,29 @@ def enable_freedrive_mode(ip_address: str) -> Tuple[bool, str]:
 
     except Exception as e:
         return False, f"Error activating freedrive mode: {str(e)}"
+
+def disable_freedrive_mode_2(robot: RobotInterface) -> Tuple[bool, str]:
+    """
+    Deactivates freedrive mode and switches the robot back to the standard controlled mode.
+
+    Args:
+        ip_address (str): IP address of the robot.
+
+    Returns:
+        Tuple[bool, str]: 
+            - `True` if freedrive mode was successfully deactivated, otherwise `False`.
+            - Status message.
+    """
+    try:
+        status = robot.endFreedriveMode()
+
+        if status != 7:  # Ensures the robot is no longer in freedrive mode
+            return True, "Freedrive mode deactivated."
+        else:
+            return False, "Failed to deactivate freedrive mode."
+
+    except Exception as e:
+        return False, f"Error deactivating freedrive mode: {str(e)}"
 
 def disable_freedrive_mode(ip_address: str) -> Tuple[bool, str]:
     """

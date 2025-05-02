@@ -7,7 +7,7 @@ from utils import utilities
 
 # EYE-IN-HAND: KAMERA NA ROBOTU
 # Definování cesty ke složce temporary_data_set a jejím podsložkám
-data_set = "data_sets\\dataset_20250311_152014"
+data_set = "data_sets\\dataset_20250328_094912"
 
 obj_pose_folder = os.path.join(data_set, 'obj_pose_tf')  # Path to the folder containing camera pictures
 robot_pose_folder = os.path.join(data_set, 'robot_pose_tf')  # Path to the folder containing camera pictures
@@ -16,7 +16,7 @@ obj_pose_tf_list = utilities.load_npy_data(obj_pose_folder)
 
 # Decompose the transformation matrices into rotation and translation components
 R_grip2base, t_grip2base = utilities.decompose_tf_matrices(rob_pose_tf_list)
-# Invert the object pose transformation matrices and decompose them
+# Invert the robot pose transformation matrices and decompose them
 inv_rob_pose_tf_list = utilities.invert_tf_matrices(rob_pose_tf_list)
 R_base2grip, t_base2grip = utilities.decompose_tf_matrices(inv_rob_pose_tf_list)
 # Decompose the transformation matrices into rotation and translation components
@@ -36,7 +36,7 @@ T_cam2grip = np.eye(4)
 T_cam2grip[:3, :3] = np.array(R_cam2grip)
 T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) ANDREFF:")
 print(T_cam2grip)
 
 # Perform Hand-Eye calibration - Eye-in-Hand
@@ -51,7 +51,7 @@ T_cam2grip = np.eye(4)
 T_cam2grip[:3, :3] = np.array(R_cam2grip)
 T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) DANIILIDIS:")
 print(T_cam2grip)
 
 # Perform Hand-Eye calibration - Eye-in-Hand
@@ -66,7 +66,7 @@ T_cam2grip = np.eye(4)
 T_cam2grip[:3, :3] = np.array(R_cam2grip)
 T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) HORAUD:")
 print(T_cam2grip)
 
 # Perform Hand-Eye calibration - Eye-in-Hand
@@ -81,7 +81,7 @@ T_cam2grip = np.eye(4)
 T_cam2grip[:3, :3] = np.array(R_cam2grip)
 T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) PARK:")
 print(T_cam2grip)
 
 # Perform Hand-Eye calibration - Eye-in-Hand
@@ -96,7 +96,7 @@ T_cam2grip = np.eye(4)
 T_cam2grip[:3, :3] = np.array(R_cam2grip)
 T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) TSAI:")
 print(T_cam2grip)
 
 # Perform Robot-World/Hand-Eye calibration - Eye-in-Hand
@@ -110,7 +110,7 @@ T_grip2cam_W = np.eye(4)
 T_grip2cam_W[:3, :3] = np.array(R_grip2cam_W)
 T_grip2cam_W[:3, 3] = np.array(t_grip2cam_W).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) SHAH:")
 T_cam2grip_W = np.linalg.inv(T_grip2cam_W)
 print(T_cam2grip_W)
 
@@ -125,6 +125,6 @@ T_grip2cam_W = np.eye(4)
 T_grip2cam_W[:3, :3] = np.array(R_grip2cam_W)
 T_grip2cam_W[:3, 3] = np.array(t_grip2cam_W).flatten()
 
-print("Resulting transformation matrix X (camera to gripper):")
+print("Resulting transformation matrix X (camera to gripper) LI:")
 T_cam2grip_W = np.linalg.inv(T_grip2cam_W)
 print(T_cam2grip_W)

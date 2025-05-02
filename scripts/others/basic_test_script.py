@@ -21,9 +21,9 @@ light_test = True               # Zapnout světlo?
 camera_matrix = None            # Kamerová matice
 dist_coeffs = None              # Distortion koeficienty
 X_matrix = np.eye(4)            # Hand-eye matice
-calib_config_test = 1           # 0 = Eye-in-Hand, 1 = Eye-to-Hand
+calib_config_test = 0           # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-selected_test = "test_3_to"  # Vyber test (např. "test_1_in", "test_2_to", ...)
+selected_test = "test_1_in"  # Vyber test (např. "test_1_in", "test_2_to", ...)
 # ====================================================================================================
 
 
@@ -57,7 +57,7 @@ def test_1_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     print(f"🔎 Detekováno markerů: {len(marker_dict)}")
 
     gripper.activate()
-    gripper.set_speed(15)
+    # gripper.set_speed(15)
     gripper.open()
 
     for i in range(5):
@@ -537,7 +537,7 @@ if __name__ == "__main__":
     try:
         # Načtení kalibračních parametrů
         # Load calibration data using the updated function
-        file_path = 'calibration_results/basic_calib_1_to_22_4.yaml'
+        file_path = 'calibration_results/basic_calib_in_02_05.yaml'
         success, result, message = utilities.load_calibration_results_yaml(file_path)
 
         if success:

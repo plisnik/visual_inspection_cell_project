@@ -150,48 +150,6 @@ def calibrate_lens(image_list: list, pattern_points: np.ndarray, pattern_size: t
 
     return camera_matrix, dist_coeffs
 
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def save_current_frame_old(directory, frame):
-    """
-    Uloží aktuální snímek do zadané složky pod názvem imageXX.png.
-
-    Args:
-        directory (str): Cesta ke složce, kde se má obrázek uložit (např. "output/cam_pictures").
-        frame (numpy.ndarray): Snímek k uložení.
-
-    Returns:
-        tuple: (bool, str) - True a cesta k souboru, nebo False a chybová hláška.
-    """
-    try:
-        # Ověření, zda máme platný snímek
-        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
-            return False, "Neplatný snímek. Uložení selhalo."
-
-        # Vytvoření složky, pokud neexistuje
-        os.makedirs(directory, exist_ok=True)
-
-        # Najít nejmenší dostupné číslo XX
-        existing_files = [f for f in os.listdir(directory) if f.startswith("image") and f.endswith(".png")]
-        existing_numbers = sorted(int(f[5:7]) for f in existing_files if f[5:7].isdigit())
-
-        new_number = 0
-        while new_number in existing_numbers:
-            new_number += 1
-
-        filename = f"image{new_number:02d}.png"
-        save_path = os.path.join(directory, filename)
-
-        # Uložení snímku pomocí OpenCV
-        success = cv2.imwrite(save_path, frame)
-
-        if success:
-            return True, f"Obrázek úspěšně uložen: {save_path}"
-        else:
-            return False, f"Selhalo ukládání obrázku do: {save_path}"
-
-    except Exception as e:
-        return False, f"Chyba při ukládání obrázku: {str(e)}"
-
 def save_current_frame(directory: str, frame: np.ndarray) -> str:
     """
     Saves the given frame to the specified directory under the name imageXX.png.

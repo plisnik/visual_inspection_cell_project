@@ -547,7 +547,7 @@ def save_calibration_results_yaml(
         method (str): Calibration method used.
 
     Returns:
-        Tuple[bool, str]: 
+        Tuple (bool, str): 
             - `True` if the file was successfully saved, otherwise `False`.
             - Message indicating success or the encountered error.
     """
@@ -587,7 +587,7 @@ def load_calibration_results_yaml(file_path: str) -> Tuple[bool, Optional[Tuple[
         file_path (str): Path to the YAML file.
 
     Returns:
-        Tuple[bool, Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, str]], str]: 
+        Tuple (bool, Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, str]], str): 
             - `True` if the file was successfully loaded, otherwise `False`.
             - A tuple containing:
                 - camera_matrix (np.ndarray)
@@ -720,21 +720,38 @@ def eye_in_hand_calibration(
 
     # Decompose transformation matrices of the robot (gripper to base)
     R_grip2base, t_grip2base = decompose_tf_matrices(rob_pose_tf_list)
+    # Invert the robot pose transformation matrices and decompose them
+    inv_rob_pose_tf_list = invert_tf_matrices(rob_pose_tf_list)
+    R_base2grip, t_base2grip = decompose_tf_matrices(inv_rob_pose_tf_list)
 
     # Decompose transformation matrices of the object
     R_target2cam, t_target2cam = decompose_tf_matrices(obj_pose_tf_list)
 
-    # Perform Hand-Eye calibration
-    R_cam2grip, t_cam2grip = cv2.calibrateHandEye(
-        R_grip2base, t_grip2base,
-        R_target2cam, t_target2cam,
-        method=calibration_method
-    )
+    if calibration_method in (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+        # Perform Robot-World/Hand-Eye calibration
+        R_base2target_W, t_base2target_W, R_grip2cam_W, t_grip2cam_W = cv2.calibrateRobotWorldHandEye(
+            R_target2cam, t_target2cam,
+            R_base2grip, t_base2grip,
+            method=calibration_method # You can choose another method, e.g., 'CALIB_ROBOT_WORLD_HAND_EYE_SHAH', etc.
+        )
 
-    # Construct the final transformation matrix
-    T_cam2grip = np.eye(4)
-    T_cam2grip[:3, :3] = np.array(R_cam2grip)
-    T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
+        T_grip2cam_W = np.eye(4)
+        T_grip2cam_W[:3, :3] = np.array(R_grip2cam_W)
+        T_grip2cam_W[:3, 3] = np.array(t_grip2cam_W).flatten()
+        T_cam2grip = np.linalg.inv(T_grip2cam_W)
+
+    else:
+        # Perform Hand-Eye calibration
+        R_cam2grip, t_cam2grip = cv2.calibrateHandEye(
+            R_grip2base, t_grip2base,
+            R_target2cam, t_target2cam,
+            method=calibration_method
+        )
+
+        # Construct the final transformation matrix
+        T_cam2grip = np.eye(4)
+        T_cam2grip[:3, :3] = np.array(R_cam2grip)
+        T_cam2grip[:3, 3] = np.array(t_cam2grip).flatten()
 
     # Convert to pose vector
     pose_vector = tf_matrix_to_pose_vector(T_cam2grip)
@@ -780,18 +797,35 @@ def eye_to_hand_calibration(
 
     # Decompose transformation matrices of the object
     R_target2cam, t_target2cam = decompose_tf_matrices(obj_pose_tf_list)
+    inv_obj_pose_tf_list = invert_tf_matrices(obj_pose_tf_list)
+    R_cam2target, t_cam2target = decompose_tf_matrices(inv_obj_pose_tf_list)
+    
 
-    # Perform Hand-Eye calibration
-    R_cam2base, t_cam2base = cv2.calibrateHandEye(
-        R_base2grip, t_base2grip,
-        R_target2cam, t_target2cam,
-        method=calibration_method
-    )
+    if calibration_method in (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+        # Perform Robot-World/Hand-Eye calibration
+        R_base2cam_W, t_base2cam_W, R_grip2target_W, t_grip2target_W = cv2.calibrateRobotWorldHandEye(
+            R_cam2target, t_cam2target,
+            R_base2grip, t_base2grip,
+            method=calibration_method # You can choose another method, e.g., 'CALIB_ROBOT_WORLD_HAND_EYE_SHAH', etc.
+        )
 
-    # Construct the final transformation matrix
-    T_cam2base = np.eye(4)
-    T_cam2base[:3, :3] = np.array(R_cam2base)
-    T_cam2base[:3, 3] = np.array(t_cam2base).flatten()
+        T_base2cam_W = np.eye(4)
+        T_base2cam_W[:3, :3] = np.array(R_base2cam_W)
+        T_base2cam_W[:3, 3] = np.array(t_base2cam_W).flatten()
+        T_cam2base = np.linalg.inv(T_base2cam_W)
+
+    else:
+        # Perform Hand-Eye calibration
+        R_cam2base, t_cam2base = cv2.calibrateHandEye(
+            R_base2grip, t_base2grip,
+            R_target2cam, t_target2cam,
+            method=calibration_method
+        )
+
+        # Construct the final transformation matrix
+        T_cam2base = np.eye(4)
+        T_cam2base[:3, :3] = np.array(R_cam2base)
+        T_cam2base[:3, 3] = np.array(t_cam2base).flatten()
 
     # Convert to pose vector
     pose_vector = tf_matrix_to_pose_vector(T_cam2base)
@@ -918,6 +952,8 @@ def calibrate_camera_with_charuco(
             raise ValueError("Camera calibration failed.")
 
         # Process object positions
+        # Check if the folder is empty
+        save_enabled = not os.listdir(obj_pose_folder)  # True if folder is empty
         obj_pose_tf_list = []
         for tvec, rvec in zip(tvecs, rvecs):
             tvec = tvec.flatten()
@@ -927,8 +963,10 @@ def calibrate_camera_with_charuco(
             pose_vector = np.hstack((tvec, rvec))
             transformation_matrix = pose_vector_to_tf_matrix(pose_vector)
 
-            # Save transformation matrix
-            save_obj_pose_data(obj_pose_folder, transformation_matrix)
+            # Save transformation matrix only if the folder was initially empty
+            if save_enabled:
+                save_obj_pose_data(obj_pose_folder, transformation_matrix)
+
             obj_pose_tf_list.append(transformation_matrix)
 
         # Load robot positions

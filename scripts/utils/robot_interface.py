@@ -87,18 +87,20 @@ class RobotInterface:
     def freedriveMode(self):
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            success = rtde_c.freedriveMode()
+            rtde_c.freedriveMode()
+            status = rtde_c.getRobotStatus()
             rtde_c.disconnect()
-            return success
+            return status
         elif self.mode == "plc_opcua":
             return
 
     def endFreedriveMode(self):
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            success = rtde_c.endFreedriveMode()
+            rtde_c.endFreedriveMode()
+            status = rtde_c.getRobotStatus()
             rtde_c.disconnect()
-            return success
+            return status
         elif self.mode == "plc_opcua":
             return
 
@@ -133,6 +135,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             status = rtde_c.getRobotStatus()
+            time.sleep(1)
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":

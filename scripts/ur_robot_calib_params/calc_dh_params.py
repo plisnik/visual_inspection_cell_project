@@ -54,12 +54,9 @@ def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarr
 
 
 def main():
-    # nebude fungovat, změna umístění ve složkách
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
-    data_set = "data_set_00"
-    urcontrol_file = os.path.join(current_dir,'UR_calibration/urcontrol.conf')
-    calibration_file = os.path.join(current_dir,'UR_calibration/calibration.conf')
+    data_set = "data_sets/basic_data_set"
+    urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
+    calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
 
     joints_folder = os.path.join(data_set,'joints_pose')
     target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
@@ -99,7 +96,6 @@ def main():
     print("Delta_alpha:", delta_alpha)
     print("Delta_theta:", delta_theta)
 
-    
 
 if __name__ == '__main__':
     sys.exit(main())
