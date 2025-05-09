@@ -1,7 +1,5 @@
 import numpy as np
 import time
-import rtde_control
-import rtde_receive
 from pypylon import pylon
 import cv2
 import os
@@ -17,7 +15,7 @@ light_on = True                 # Turn on the light?
 
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-data_set = "data_sets\\basic_data_set_in_mereni_25_04"
+data_set = "data_sets\\basic_data_set_in_05_06"
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
 joints_pose_folder = "joints_pose"
@@ -39,17 +37,18 @@ charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 
 # Parameters for generating points
 scale_factor = 0.75  # factor for the rectangle in the image
-distance = 0.33     # in metre
+distance = 0.38     # in metre
 # ============================================
 
 def main():
     print("Starting calibration...")
+    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
     # Switching on the light
     if light_on:
-        if not utilities.enable_digital_output(ip_address, light_output_id):
+        if not utilities.enable_digital_output_rb(robot, light_output_id):
             raise RuntimeError("Failed to turn on the light")
-        
+
     # Initialize camera
     camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
     camera.Open()
@@ -59,7 +58,7 @@ def main():
     camera.UserSetLoad.Execute()
 
     # Try to enable freedrive mode
-    success, message = utilities.enable_freedrive_mode(ip_address)
+    success, message = utilities.enable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode enabled")
     else:
@@ -103,19 +102,21 @@ def main():
         print("Image successfully captured.")
 
     # Try to disable freedrive mode
-    success, message = utilities.disable_freedrive_mode(ip_address)
+    success, message = utilities.disable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode disabled")
     else:
         raise RuntimeError(f"Failed to disable freedrive mode: {message}")
-    time.sleep(1)
+    print("čekám")
+    time.sleep(10)
 
     img_height, img_width, channel = image.shape
 
     if calib_config == 0:
         # Eye-in-Hand calibration
         source_axis = np.array([0, 0, 1]) # robot axis aligned with the camera axis
-        circle_points = utilities.generate_points_on_circle(8, 0.15, distance, source_axis)
+        circle_points = utilities.generate_points_on_circle(20, 0.15, distance, source_axis)
+        circle_points_2 = utilities.generate_points_on_circle(8, 0.05, distance, source_axis)
         plane_positions = utilities.generate_plane_points(
             img_width, img_height,
             board_width, board_height,
@@ -124,7 +125,7 @@ def main():
             source_axis
             )
         # Combine lists: origin point + valid camera positions + circular points
-        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points
+        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points + circle_points_2
 
     else:
         # Eye-to-Hand calibration
@@ -147,11 +148,8 @@ def main():
         # Combine lists: origin point + valid camera positions + circular points/_2
         points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points_2
 
-
-    rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
-    first_TCP = rtde_r.getActualTCPPose()
+    first_TCP = np.array(robot.get_actual_tcp_pose())
     first_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
-    rtde_r.disconnect()
     
     # Calibration files
     urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
@@ -185,10 +183,8 @@ def main():
         point_base_tf = first_tf @ point_tf
         point_base = utilities.tf_matrix_to_pose_vector(point_base_tf)
 
-        rtde_c = rtde_control.RTDEControlInterface(ip_address)
-        rtde_c.moveL(point_base, speed=0.25, acceleration=0.25)
-        time.sleep(1)
-        rtde_c.disconnect()
+        robot.moveL(point_base, speed=0.25, acceleration=0.25)
+        time.sleep(0.5)
 
         grab_result = camera.GrabOne(2000)
         if not grab_result.GrabSucceeded():
@@ -199,10 +195,8 @@ def main():
         path = utilities_camera.save_current_frame(image_path, image)
         print(f"Saved image: {path}")
 
-        rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
-        actual_TCP = rtde_r.getActualTCPPose()
-        actual_joints = np.array(rtde_r.getActualQ())
-        rtde_r.disconnect()
+        actual_TCP = np.array(robot.get_actual_tcp_pose())
+        actual_joints = np.array(robot.get_actual_joints())
 
         tf_matrix = utilities.pose_vector_to_tf_matrix(actual_TCP)
         robot_fk = utilities.fk_with_corrections(actual_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
@@ -213,14 +207,12 @@ def main():
 
     camera.Close()
 
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
+    robot.moveL(first_TCP, speed=0.1, acceleration=0.15)
     time.sleep(1)
-    rtde_c.disconnect()
 
     # Switch off light
     if light_on:
-        utilities.disable_digital_output(ip_address, light_output_id)
+        utilities.disable_digital_output_rb(robot, light_output_id)
 
 if __name__ == "__main__":
     main()

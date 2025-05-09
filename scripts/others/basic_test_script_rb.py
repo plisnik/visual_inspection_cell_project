@@ -11,6 +11,7 @@ from utils import utilities, robot_interface
 from utils.robotiq_gripper_control import RobotiqGripper
 from ur_robot_calib_params import read_calib_data
 
+# PŘEDĚLAT CELÉ NA ROBOT INTERFACE CLASS
 
 # === CONFIGURATION VARIABLES ===
 ip_address = "192.168.209.135"  # IP address of the robot
@@ -59,8 +60,7 @@ def test_1_in(
     print("Launching TEST 1 – Eye-in-Hand")
 
     # === Initialize RTDE interface and gripper ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    gripper = RobotiqGripper(rtde_c)
+    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
     # === Detect markers from input image ===
     ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(
@@ -80,15 +80,15 @@ def test_1_in(
     print(f"🔎 Detected markers: {len(marker_dict)}")
 
     # === Prepare gripper ===
-    gripper.activate()
-    gripper.set_speed(15)
-    gripper.open()
+    robot.gripper_activate()
+    robot.gripper_set_speed(50)
+    robot.gripper_open()
 
     for i in range(5):
         pick_id = i
         place_id = i + 10
 
-        rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+        robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id in marker_dict and place_id in marker_dict:
             tf_pick_camera = marker_dict[pick_id]
@@ -107,10 +107,10 @@ def test_1_in(
             pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
             print(f"👉 PICK {pick_id} → {best_pick}")
-            rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
-            rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
-            gripper.close()
-            rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
+            robot.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
+            robot.moveL(best_pick, speed=0.1, acceleration=0.15)
+            robot.gripper_close()
+            robot.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
             # === PLACE část ===
             place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
@@ -127,16 +127,15 @@ def test_1_in(
             place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
             print(f"👉 PLACE {pick_id} → {place_id} @ {best_place}")
-            rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
-            rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
-            gripper.open()
-            rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
+            robot.moveL(place_pose_above, speed=0.1, acceleration=0.15)
+            robot.moveL(best_place, speed=0.1, acceleration=0.15)
+            robot.gripper_open()
+            robot.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
         else:
             print(f"⚠️ Marker {pick_id} or {place_id} not detected - skipped.")
 
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 1 finished.")
 
 def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
@@ -560,7 +559,7 @@ def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
 if __name__ == "__main__":
     try:
         # Load calibration data using the updated function
-        file_path = 'calibration_results/calibration_in_05_06.yaml'
+        file_path = 'calibration_results/basic_calib_in_02_05.yaml'
         success, result, message = utilities.load_calibration_results_yaml(file_path)
 
         if success:

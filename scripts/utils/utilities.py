@@ -444,7 +444,7 @@ def read_position_from_txt(filename: str) -> np.ndarray:
     except ValueError as e:
         raise ValueError(f"Error parsing the file {filename}: {str(e)}")
 
-def check_robot_connection_2(robot: RobotInterface) -> bool:
+def check_robot_connection_rb(robot: RobotInterface) -> bool:
     try:
         state = robot.isConnected()
         return state
@@ -462,7 +462,7 @@ def check_robot_connection(ip_address: str) -> bool:
         print(f"Chyba při připojení k robotu: {e}")
         return False
 
-def enable_digital_output_2(robot: RobotInterface, output_id: int) -> bool:
+def enable_digital_output_rb(robot: RobotInterface, output_id: int) -> bool:
     """ Zapne digitální výstup na UR robotu a vrátí jeho stav. """
     try:
         robot.setStandardDigitalOutput(output_id, True)
@@ -492,7 +492,7 @@ def enable_digital_output(ip_address: str, output_id: int) -> bool:
     except Exception as e:
         return False  # Pokud nastane chyba, vrátíme False jako indikaci neúspěchu
 
-def disable_digital_output_2(robot: RobotInterface, output_id: int) -> bool:
+def disable_digital_output_rb(robot: RobotInterface, output_id: int) -> bool:
     """ Vypne digitální výstup na UR robotu a vrátí jeho stav. """
     try:
         robot.setStandardDigitalOutput(output_id, False)
@@ -1257,7 +1257,7 @@ def save_joints_data(directory: str, data: np.ndarray) -> None:
     except Exception as e:
         raise IOError(f"Failed to save joint data: {str(e)}")
 
-def enable_freedrive_mode_2(robot: RobotInterface) -> Tuple[bool, str]:
+def enable_freedrive_mode_rb(robot: RobotInterface) -> Tuple[bool, str]:
     """
     Activates the robot's freedrive mode, allowing manual movement without resistance.
 
@@ -1308,7 +1308,7 @@ def enable_freedrive_mode(ip_address: str) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Error activating freedrive mode: {str(e)}"
 
-def disable_freedrive_mode_2(robot: RobotInterface) -> Tuple[bool, str]:
+def disable_freedrive_mode_rb(robot: RobotInterface) -> Tuple[bool, str]:
     """
     Deactivates freedrive mode and switches the robot back to the standard controlled mode.
 

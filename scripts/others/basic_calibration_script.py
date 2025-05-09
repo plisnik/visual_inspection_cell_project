@@ -30,7 +30,7 @@ method_map = {
     'SHAH (world)': cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH,
 }
 
-data_set = "data_sets/basic_data_set_to_22_4"
+data_set = "data_sets/data_set_to_05_09_vice_blize"
 
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
@@ -43,6 +43,10 @@ square_length = 0.016
 marker_length = 0.012
 board_rows = 8
 board_cols = 10
+# square_length = 0.03
+# marker_length = 0.022
+# board_rows = 6
+# board_cols = 8
 board_size = (board_cols, board_rows)
 board_width = board_cols * square_length
 board_height = board_rows * square_length
@@ -52,7 +56,7 @@ charuco_board.setLegacyPattern(True)
 charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 
 # Parametry pro generování bodů
-scale_factor = 0.65  # faktor pro obdélník v obraze
+scale_factor = 0.75  # faktor pro obdélník v obraze
 distance = 0.25     # v metrech
 # ============================================
 
@@ -126,6 +130,7 @@ def main():
         # Eye-in-Hand kalibrace
         source_axis = np.array([0, 0, 1]) # osa robota zarovnaná s osou kamery
         circle_points = utilities.generate_points_on_circle(8, 0.15, distance, source_axis)
+        # circle_points_2 = utilities.generate_points_on_circle(10, 0.25, distance, source_axis)
         plane_positions = utilities.generate_plane_points(
             img_width, img_height,
             board_width, board_height,
@@ -145,7 +150,7 @@ def main():
             board_width, board_height,
             rect_width, rect_height,
             x_rect, y_rect,
-            8, source_axis
+            16, source_axis
             )
         plane_positions = utilities.generate_plane_points(
             img_width, img_height,
@@ -248,7 +253,7 @@ def main():
     print(f"X_matrix:\n{X_matrix}")
     print(f"Pose vector: {pose_vector}")
 
-    file_path = "calibration_results/basic_calib_1_to_22_4.yaml"
+    file_path = "calibration_results/calib_to_05_09_vice_blize.yaml"
     # Save calibration data using the updated function
     success, message = utilities.save_calibration_results_yaml(
         file_path,

@@ -20,11 +20,9 @@ method_map = {
     'SHAH (world)': cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH,
 }
 
-data_set = "data_sets/basic_data_set_in_mereni_02_05"
+data_set = "data_sets\data_set_in_05_09_norm_vice_snimku"
 
 image_folder = "cam_pictures"
-tcp_pose_folder = "tcp_pose_tf"
-joints_pose_folder = "joints_pose"
 robot_pose_folder = "robot_pose_tf"
 obj_pose_folder = "obj_pose_tf"
 
@@ -44,7 +42,6 @@ charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 # ============================================
 
 def main():
-    
     # Kontrola, zda složka už existuje
     if not os.path.exists(data_set):
         print(f"Složka '{data_set}' neexistuje.")
@@ -71,17 +68,17 @@ def main():
     print(f"X_matrix:\n{X_matrix}")
     print(f"Pose vector: {pose_vector}")
 
-    file_path = "calibration_results/basic_calib_in_02_05.yaml"
-    # Save calibration data using the updated function
-    success, message = utilities.save_calibration_results_yaml(
-        file_path,
-        camera_matrix,
-        dist_coeffs,
-        X_matrix,
-        pose_vector,
-        calib_config,
-        calib_method
-    )
+    # file_path = "calibration_results/calibration_in_mereni_25_04.yaml"
+    # # Save calibration data using the updated function
+    # success, message = utilities.save_calibration_results_yaml(
+    #     file_path,
+    #     camera_matrix,
+    #     dist_coeffs,
+    #     X_matrix,
+    #     pose_vector,
+    #     calib_config,
+    #     calib_method
+    # )
 
 if __name__ == "__main__":
     main()

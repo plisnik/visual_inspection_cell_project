@@ -7,7 +7,7 @@ import time
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
+from utils.robotiq_gripper_control import RobotiqGripper
 from utils import PLC_comunication
 
 class RobotInterface:
@@ -30,6 +30,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             result = rtde_c.moveL(pose, speed, acceleration)
+            time.sleep(0.1)
             rtde_c.disconnect()
             return result
         elif self.mode == "plc_opcua":
@@ -54,6 +55,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             result = rtde_c.moveJ(joints, speed, acceleration)
+            time.sleep(0.1)
             rtde_c.disconnect()
             return result
         elif self.mode == "plc_opcua":
@@ -63,6 +65,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_r = rtde_receive.RTDEReceiveInterface(self.ip)
             pose = rtde_r.getActualTCPPose()
+            time.sleep(0.1)
             rtde_r.disconnect()
             return pose
         elif self.mode == "plc_opcua":
@@ -79,6 +82,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_r = rtde_receive.RTDEReceiveInterface(self.ip)
             joints = rtde_r.getActualQ()
+            time.sleep(0.1)
             rtde_r.disconnect()
             return joints
         elif self.mode == "plc_opcua":
@@ -89,6 +93,7 @@ class RobotInterface:
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             rtde_c.freedriveMode()
             status = rtde_c.getRobotStatus()
+            time.sleep(0.1)
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":
@@ -99,6 +104,7 @@ class RobotInterface:
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             rtde_c.endFreedriveMode()
             status = rtde_c.getRobotStatus()
+            time.sleep(0.1)
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":
@@ -108,6 +114,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_IO = rtde_io.RTDEIOInterface(self.ip)
             success = rtde_IO.setStandardDigitalOut(output_id, bool)
+            time.sleep(0.1)
             rtde_IO.disconnect()
             return success
         elif self.mode == "plc_opcua":
@@ -117,6 +124,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_r = rtde_receive.RTDEReceiveInterface(self.ip)
             state = rtde_r.getDigitalOutState(output_id)
+            time.sleep(0.1)
             rtde_r.disconnect()
             return state
         elif self.mode == "plc_opcua":
@@ -126,6 +134,7 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_r = rtde_receive.RTDEReceiveInterface(self.ip)
             state = rtde_r.isConnected()
+            time.sleep(0.1)
             rtde_r.disconnect()
             return state
         elif self.mode == "plc_opcua":
@@ -135,8 +144,52 @@ class RobotInterface:
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
             status = rtde_c.getRobotStatus()
-            time.sleep(1)
+            time.sleep(0.1)
             rtde_c.disconnect()
             return status
+        elif self.mode == "plc_opcua":
+            return
+        
+    def gripper_activate(self):
+        if self.mode == "rtde":
+            rtde_c = rtde_control.RTDEControlInterface(self.ip)
+            gripper = RobotiqGripper(rtde_c)
+            gripper.activate()
+            time.sleep(0.1)
+            rtde_c.disconnect()
+            return
+        elif self.mode == "plc_opcua":
+            return
+        
+    def gripper_set_speed(self, speed: int = 50):
+        if self.mode == "rtde":
+            rtde_c = rtde_control.RTDEControlInterface(self.ip)
+            gripper = RobotiqGripper(rtde_c)
+            gripper.set_speed(speed)
+            time.sleep(0.1)
+            rtde_c.disconnect()
+            return
+        elif self.mode == "plc_opcua":
+            return
+        
+    def gripper_open(self):
+        if self.mode == "rtde":
+            rtde_c = rtde_control.RTDEControlInterface(self.ip)
+            gripper = RobotiqGripper(rtde_c)
+            gripper.open()
+            time.sleep(0.1)
+            rtde_c.disconnect()
+            return
+        elif self.mode == "plc_opcua":
+            return
+        
+    def gripper_close(self):
+        if self.mode == "rtde":
+            rtde_c = rtde_control.RTDEControlInterface(self.ip)
+            gripper = RobotiqGripper(rtde_c)
+            gripper.close()
+            time.sleep(0.1)
+            rtde_c.disconnect()
+            return
         elif self.mode == "plc_opcua":
             return

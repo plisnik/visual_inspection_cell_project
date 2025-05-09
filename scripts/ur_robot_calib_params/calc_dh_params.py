@@ -52,6 +52,43 @@ def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarr
     
     return np.concatenate(errors)
 
+def save_mounting_config(
+    file_path: str,
+    delta_theta: list,
+    delta_a: list,
+    delta_d: list,
+    delta_alpha: list
+    ) -> None:
+    """
+    Saves mounting correction data to a .conf file in a specific format.
+
+    Args:
+        file_path (str): Path to the .conf file (e.g. 'calibration/mounting.conf').
+        delta_theta (list): List of delta_theta values (length 6).
+        delta_a (list): List of delta_a values (length 6).
+        delta_d (list): List of delta_d values (length 6).
+        delta_alpha (list): List of delta_alpha values (length 6).
+    """
+    with open(file_path, 'w') as f:
+        f.write("[mounting]\n")
+        f.write(f"delta_theta = {format_list(delta_theta)}\n")
+        f.write(f"delta_a = {format_list(delta_a)}\n")
+        f.write(f"delta_d = {format_list(delta_d)}\n")
+        f.write(f"delta_alpha = {format_list(delta_alpha)}\n")
+
+
+def format_list(values: list) -> str:
+    """
+    Formats a list of floats into a string suitable for .conf output.
+
+    Args:
+        values (list): List of float values.
+
+    Returns:
+        str: Formatted string.
+    """
+    return "[ " + ", ".join(f"{v:.17g}" for v in values) + "]"
+
 
 def main():
     data_set = "data_sets/basic_data_set"
@@ -88,6 +125,9 @@ def main():
     print("Optimized delta_alpha:", delta_alpha_opt)
     print("Optimized delta_theta:", delta_theta_opt)
 
+    file_path = 'scripts/ur_robot_calib_params/UR_calibration/calibration_experiment.conf'
+    save_mounting_config(file_path, delta_theta_opt, delta_a_opt, delta_d_opt, delta_alpha_opt)
+
     # Loading and processing the calibrATION.conf file
     delta_theta, delta_a, delta_d, delta_alpha = load_mounting_calibration_parameters(calibration_file)
     print("DH Parameters from calibration.conf:")
@@ -95,6 +135,12 @@ def main():
     print("Delta_d:", delta_d)
     print("Delta_alpha:", delta_alpha)
     print("Delta_theta:", delta_theta)
+
+    print("Rozdíl:")
+    print(delta_theta - delta_theta_opt)
+    print(delta_a - delta_a_opt)
+    print(delta_d - delta_d_opt)
+    print(delta_alpha - delta_alpha_opt)
 
 
 if __name__ == '__main__':
