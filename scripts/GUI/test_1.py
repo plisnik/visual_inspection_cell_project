@@ -9,7 +9,7 @@ from global_data import GlobalData
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities, utilities_camera
+from utils import utilities
 from utils.robotiq_gripper_control import RobotiqGripper
 from ur_robot_calib_params import read_calib_data
 
@@ -44,7 +44,6 @@ class Test_Thread_1(QThread):
                 
             first_TCP = self.rtde_r.getActualTCPPose()
             first_TCP_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
-
             first_joints = np.array(self.rtde_r.getActualQ())
             first_robot_tf = utilities.fk_with_corrections(first_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
             self.rtde_r.disconnect()
@@ -77,18 +76,6 @@ class Test_Thread_1(QThread):
                                                                                                    self.global_data.dist_coeffs, 
                                                                                                    0.022, 
                                                                                                    dictionary_name=cv2.aruco.DICT_4X4_250)
-            
-            # Kreslení os markeru (OX is drawn in red, OY in green and OZ in blue) - nelze všechny naráz, musí se po jednom
-            cv2.drawFrameAxes(image, self.global_data.camera_matrix, self.global_data.dist_coeffs, rvecs[0].flatten(), tvecs[0].flatten(), 0.1, 2)
-            cv2.drawFrameAxes(image, self.global_data.camera_matrix, self.global_data.dist_coeffs, rvecs[1].flatten(), tvecs[1].flatten(), 0.1)
-
-            image = cv2.resize(image, (0, 0), fx = 0.4, fy = 0.4, interpolation = cv2.INTER_AREA)
-
-            # Zobrazení výsledného obrazu
-            cv2.imshow("Detected ArUco markers", image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
 
             if ids is None or len(ids) == 0:
                 self.logger.warning("Žádné markery nebyly detekovány.")
@@ -129,9 +116,7 @@ class Test_Thread_1(QThread):
 
                         # === PICK část ===
                         pick_list = utilities.generate_pick_poses_z_down(tf_pick_camera)
-                        pick_list_global = []
-                        for i in pick_list:
-                            pick_list_global.append(first_robot_tf @ self.global_data.X_matrix @ i)
+                        pick_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in pick_list]
 
                         best_pick_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pick_list_global)
                         best_pick = utilities.tf_matrix_to_pose_vector(best_pick_tf)
@@ -159,9 +144,7 @@ class Test_Thread_1(QThread):
 
                         # === PLACE část ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
-                        place_list_global = []
-                        for i in place_list:
-                            place_list_global.append(first_robot_tf @ self.global_data.X_matrix @ i)
+                        place_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
                         
@@ -169,7 +152,6 @@ class Test_Thread_1(QThread):
                         offset_place = np.eye(4)
                         offset_place[:3, 3] = np.array([0, 0, -0.033])
                         best_place_tf = best_place_tf @ offset_place
-
                         place_tf_above = best_place_tf @ offset_above
 
                         best_place = utilities.tf_matrix_to_pose_vector(best_place_tf)
@@ -192,7 +174,7 @@ class Test_Thread_1(QThread):
                 self.logger.info("Calibration test Eye-to-Hand process started.")
 
                 gripper.activate()
-                gripper.set_speed(5)
+                gripper.set_speed(15)
                 gripper.open()
 
                 for i in range(5):
@@ -212,9 +194,7 @@ class Test_Thread_1(QThread):
 
                         # === PICK část ===
                         pick_list = utilities.generate_pick_poses_z_down(tf_pick_camera)
-                        pick_list_global = []
-                        for i in pick_list:
-                            pick_list_global.append(self.global_data.X_matrix @ i)
+                        pick_list_global = [self.global_data.X_matrix @ p for p in pick_list]
 
                         best_pick_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pick_list_global)
                         best_pick = utilities.tf_matrix_to_pose_vector(best_pick_tf)
@@ -242,9 +222,7 @@ class Test_Thread_1(QThread):
 
                         # === PLACE část ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
-                        place_list_global = []
-                        for i in place_list:
-                            place_list_global.append(self.global_data.X_matrix @ i)
+                        place_list_global = [self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
                         

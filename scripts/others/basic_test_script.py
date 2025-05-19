@@ -72,12 +72,12 @@ def test_1_in(
     )
 
     if ids is None or len(ids) == 0:
-        print("❌ No markers were detected.")
+        print("No markers were detected.")
         return
 
     # === Create dictionary of detected marker IDs and transformation matrices ===
     marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}
-    print(f"🔎 Detected markers: {len(marker_dict)}")
+    print(f"Detected markers: {len(marker_dict)}")
 
     # === Prepare gripper ===
     gripper.activate()
@@ -106,7 +106,7 @@ def test_1_in(
             pick_tf_above = best_pick_tf @ offset_above
             pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-            print(f"👉 PICK {pick_id} → {best_pick}")
+            print(f"PICK {pick_id} → {best_pick}")
             rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
             rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
             gripper.close()
@@ -126,18 +126,18 @@ def test_1_in(
             best_place = utilities.tf_matrix_to_pose_vector(best_place_tf)
             place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
-            print(f"👉 PLACE {pick_id} → {place_id} @ {best_place}")
+            print(f"PLACE {pick_id} → {place_id} @ {best_place}")
             rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
             rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
             gripper.open()
             rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
         else:
-            print(f"⚠️ Marker {pick_id} or {place_id} not detected - skipped.")
+            print(f"Marker {pick_id} or {place_id} not detected - skipped.")
 
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 1 finished.")
+    print("TEST 1 finished.")
 
 def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     print("Spouštím TEST 1 – Eye-to-Hand")
@@ -156,11 +156,11 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     )
 
     if ids is None or len(ids) == 0:
-        print("❌ Žádné markery nebyly detekovány.")
+        print("Žádné markery nebyly detekovány.")
         return
 
     marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}
-    print(f"🔎 Detekováno markerů: {len(marker_dict)}")
+    print(f"Detekováno markerů: {len(marker_dict)}")
 
     gripper.activate()
     gripper.set_speed(15)
@@ -188,7 +188,7 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
             pick_tf_above = best_pick_tf @ offset_above
             pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-            print(f"👉 PICK {pick_id} → {best_pick}")
+            print(f"PICK {pick_id} → {best_pick}")
             rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
             rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
             gripper.close()
@@ -208,18 +208,18 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
             best_place = utilities.tf_matrix_to_pose_vector(best_place_tf)
             place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
-            print(f"👉 PLACE {pick_id} → {place_id} @ {best_place}")
+            print(f"PLACE {pick_id} → {place_id} @ {best_place}")
             rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
             rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
             gripper.open()
             rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
         else:
-            print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
+            print(f"Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
 
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 1 dokončen.")
+    print("TEST 1 dokončen.")
 
 def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     """markery nalepené na kostičkách + forma, kam je uložit"""
@@ -239,11 +239,11 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     )
 
     if ids is None or len(ids) == 0:
-        print("❌ Žádné markery nebyly detekovány.")
+        print("Žádné markery nebyly detekovány.")
         return
 
     marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}
-    print(f"🔎 Detekováno markerů: {list(marker_dict.keys())}")
+    print(f"Detekováno markerů: {list(marker_dict.keys())}")
 
     # === Definice offsetů do formy (110 x 110 mm) vůči markeru ID 10 ===
     form_offsets = [
@@ -264,7 +264,7 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id not in marker_dict or place_id not in marker_dict:
-            print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
+            print(f"Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
             continue
 
         tf_pick_camera = marker_dict[pick_id]
@@ -283,7 +283,7 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         pick_tf_above = best_pick_tf @ offset_above
         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-        print(f"👉 PICK marker {pick_id} @ {best_pick}")
+        print(f"PICK marker {pick_id} @ {best_pick}")
         rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
         rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
         gripper.close()
@@ -304,7 +304,7 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         best_place = utilities.tf_matrix_to_pose_vector(best_place_tf)
         place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
-        print(f"👉 PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
+        print(f"PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
         rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
         rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
         gripper.open()
@@ -312,7 +312,7 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
 
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 2 dokončen.")
+    print("TEST 2 dokončen.")
 
 def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     print("Spouštím TEST 2 – Eye-to-Hand (forma)")
@@ -331,11 +331,11 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     )
 
     if ids is None or len(ids) == 0:
-        print("❌ Žádné markery nebyly detekovány.")
+        print("Žádné markery nebyly detekovány.")
         return
 
     marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}
-    print(f"🔎 Detekováno markerů: {list(marker_dict.keys())}")
+    print(f"Detekováno markerů: {list(marker_dict.keys())}")
 
     # === Definice offsetů do formy (110 x 110 mm) vůči markeru ID 10 ===
     form_offsets = [
@@ -356,7 +356,7 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id not in marker_dict or place_id not in marker_dict:
-            print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
+            print(f"Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
             continue
 
         tf_pick_camera = marker_dict[pick_id]
@@ -375,7 +375,7 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         pick_tf_above = best_pick_tf @ offset_above
         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-        print(f"👉 PICK marker {pick_id} @ {best_pick}")
+        print(f"PICK marker {pick_id} @ {best_pick}")
         rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
         rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
         gripper.close()
@@ -396,7 +396,7 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         best_place = utilities.tf_matrix_to_pose_vector(best_place_tf)
         place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
-        print(f"👉 PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
+        print(f"PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
         rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
         rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
         gripper.open()
@@ -404,7 +404,7 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
 
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 2 dokončen.")
+    print("TEST 2 dokončen.")
 
 def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     """kalibrační podložka a hrot"""
@@ -429,7 +429,7 @@ def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     charuco_corners, charuco_ids, _, _ = charuco_detector.detectBoard(image)
 
     if charuco_ids is None or len(charuco_ids) == 0:
-        print("❌ Žádná ChArUco deska nebyla detekována.")
+        print("Žádná ChArUco deska nebyla detekována.")
         return
 
     # Odhad pozice desky vůči kameře
@@ -448,7 +448,7 @@ def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     )
 
     if not retval:
-        print("❌ Nepodařilo se spočítat pozici ChArUco desky.")
+        print("Nepodařilo se spočítat pozici ChArUco desky.")
         return
 
     # Vytvoření transformační matice z pozice (levý horní roh)
@@ -461,7 +461,7 @@ def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
 
     best_pose_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pose_list_global)
 
-    # Offset o 1 cm ve směru Z
+    # Offset o -1 cm ve směru Z
     offset_above = np.eye(4)
     offset_above[:3, 3] = np.array([0, 0, -0.01])
     best_pose_tf = best_pose_tf @ offset_above
@@ -472,13 +472,13 @@ def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.moveL(best_pose, speed=0.1, acceleration=0.15)
 
-    print("✅ Robot namířen na levý horní roh ChArUco desky.")
+    print("Robot namířen na levý horní roh ChArUco desky.")
     time.sleep(2)
 
     # Návrat do výchozí pozice
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 3 dokončen.")
+    print("TEST 3 dokončen.")
 
 
 def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
@@ -504,7 +504,7 @@ def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     print("deska ok")
 
     if charuco_ids is None or len(charuco_ids) == 0:
-        print("❌ Žádná ChArUco deska nebyla detekována.")
+        print("Žádná ChArUco deska nebyla detekována.")
         return
 
     # Odhad pozice desky vůči kameře
@@ -523,7 +523,7 @@ def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     )
 
     if not retval:
-        print("❌ Nepodařilo se spočítat pozici ChArUco desky.")
+        print("Nepodařilo se spočítat pozici ChArUco desky.")
         return
 
     # Vytvoření transformační matice z pozice (levý horní roh)
@@ -547,13 +547,13 @@ def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.moveL(best_pose, speed=0.05, acceleration=0.1)
 
-    print("✅ Robot namířen na levý horní roh ChArUco desky.")
+    print("Robot namířen na levý horní roh ChArUco desky.")
     time.sleep(3)
 
     # Návrat do výchozí pozice
     rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     rtde_c.disconnect()
-    print("✅ TEST 3 dokončen.")
+    print("TEST 3 dokončen.")
 
 # ===========================================================================================================
 
@@ -572,12 +572,12 @@ if __name__ == "__main__":
         calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
         a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
         delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
-        robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
         if light_test:
             if not utilities.enable_digital_output(ip_address, light_output_id):
                 raise RuntimeError("Failed to turn on light.")
             
+        # Zapnutí napájení kamery
         utilities.enable_digital_output(ip_address,1)
 
         # Initialize camera
@@ -618,7 +618,7 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
 
         if image is None:
-            raise RuntimeError("Nepodařilo se uložit snímek z kamery.")
+            raise RuntimeError("Nepodařilo se zachytit snímek z kamery.")
         else:
             print("Snímek úspěšně zachycen.")
 

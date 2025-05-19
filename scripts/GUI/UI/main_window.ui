@@ -419,7 +419,7 @@ QToolButton:checked {
        <enum>QFrame::Shape::NoFrame</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page_home">
        <layout class="QGridLayout" name="gridLayout_3">

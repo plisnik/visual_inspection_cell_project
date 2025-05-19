@@ -8,10 +8,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utils import utilities, robot_interface
-from utils.robotiq_gripper_control import RobotiqGripper
 from ur_robot_calib_params import read_calib_data
-
-# PŘEDĚLAT CELÉ NA ROBOT INTERFACE CLASS
 
 # === CONFIGURATION VARIABLES ===
 ip_address = "192.168.209.135"  # IP address of the robot
@@ -29,7 +26,7 @@ selected_test = "test_1_in"  # Select a test (e.g.. "test_1_in", "test_2_to", ..
 # === DEFINITION OF TEST FUNCTIONS ===
 
 def test_1_in(
-    ip_address: str,
+    robot: robot_interface.RobotInterface,
     image: np.ndarray,
     X_matrix: np.ndarray,
     camera_matrix: np.ndarray,
@@ -58,9 +55,6 @@ def test_1_in(
     """
 
     print("Launching TEST 1 – Eye-in-Hand")
-
-    # === Initialize RTDE interface and gripper ===
-    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
     # === Detect markers from input image ===
     ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(
@@ -138,12 +132,8 @@ def test_1_in(
     robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 1 finished.")
 
-def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
+def test_1_to(robot: robot_interface.RobotInterface, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     print("Spouštím TEST 1 – Eye-to-Hand")
-
-    # === Inicializace RTDE + Gripper ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    gripper = RobotiqGripper(rtde_c)
 
     # === Detekce markerů ze vstupního snímku ===
     ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(
@@ -161,15 +151,16 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}
     print(f"🔎 Detekováno markerů: {len(marker_dict)}")
 
-    gripper.activate()
-    gripper.set_speed(15)
-    gripper.open()
+    # === Prepare gripper ===
+    robot.gripper_activate()
+    robot.gripper_set_speed(50)
+    robot.gripper_open()
 
     for i in range(5):
         pick_id = i
         place_id = i + 10
 
-        rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+        robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id in marker_dict and place_id in marker_dict:
             tf_pick_camera = marker_dict[pick_id]
@@ -188,10 +179,10 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
             pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
             print(f"👉 PICK {pick_id} → {best_pick}")
-            rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
-            rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
-            gripper.close()
-            rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
+            robot.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
+            robot.moveL(best_pick, speed=0.1, acceleration=0.15)
+            robot.gripper_close()
+            robot.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
             # === PLACE část ===
             place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
@@ -208,25 +199,20 @@ def test_1_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
             place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
             print(f"👉 PLACE {pick_id} → {place_id} @ {best_place}")
-            rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
-            rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
-            gripper.open()
-            rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
+            robot.moveL(place_pose_above, speed=0.1, acceleration=0.15)
+            robot.moveL(best_place, speed=0.1, acceleration=0.15)
+            robot.gripper_open()
+            robot.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
         else:
             print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
 
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 1 dokončen.")
 
-def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
+def test_2_in(robot: robot_interface.RobotInterface, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     """markery nalepené na kostičkách + forma, kam je uložit"""
     print("Spouštím TEST 2 – Eye-in-Hand (forma)")
-
-    # === Inicializace RTDE + Gripper ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    gripper = RobotiqGripper(rtde_c)
 
     # === Detekce markerů ze vstupního snímku ===
     ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(
@@ -252,15 +238,16 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         np.array([ 0.055, -0.055, -0.033]),  # pravý dolní roh
     ]
 
-    # === Aktivace gripperu ===
-    gripper.activate()
-    gripper.open()
+    # === Prepare gripper ===
+    robot.gripper_activate()
+    robot.gripper_set_speed(50)
+    robot.gripper_open()
 
     for i in range(4):
         pick_id = i
         place_id = 10  # forma s markerem ID 10
 
-        rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+        robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id not in marker_dict or place_id not in marker_dict:
             print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
@@ -283,10 +270,10 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
         print(f"👉 PICK marker {pick_id} @ {best_pick}")
-        rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
-        rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
-        gripper.close()
-        rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
+        robot.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
+        robot.moveL(best_pick, speed=0.1, acceleration=0.15)
+        robot.gripper_close()
+        robot.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
         # === PLACE část ===
         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
@@ -304,21 +291,16 @@ def test_2_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
         print(f"👉 PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
-        rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
-        rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
-        gripper.open()
-        rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
+        robot.moveL(place_pose_above, speed=0.1, acceleration=0.15)
+        robot.moveL(best_place, speed=0.1, acceleration=0.15)
+        robot.gripper_open()
+        robot.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 2 dokončen.")
 
-def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
+def test_2_to(robot: robot_interface.RobotInterface, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     print("Spouštím TEST 2 – Eye-to-Hand (forma)")
-
-    # === Inicializace RTDE + Gripper ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    gripper = RobotiqGripper(rtde_c)
 
     # === Detekce markerů ze vstupního snímku ===
     ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(
@@ -344,15 +326,16 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         np.array([ 0.055, -0.055, -0.033]),  # pravý dolní roh
     ]
 
-    # === Aktivace gripperu ===
-    gripper.activate()
-    gripper.open()
+    # === Prepare gripper ===
+    robot.gripper_activate()
+    robot.gripper_set_speed(50)
+    robot.gripper_open()
 
     for i in range(4):
         pick_id = i
         place_id = 10  # forma s markerem ID 10
 
-        rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+        robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
 
         if pick_id not in marker_dict or place_id not in marker_dict:
             print(f"⚠️ Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
@@ -375,10 +358,10 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
         print(f"👉 PICK marker {pick_id} @ {best_pick}")
-        rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
-        rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
-        gripper.close()
-        rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
+        robot.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
+        robot.moveL(best_pick, speed=0.1, acceleration=0.15)
+        robot.gripper_close()
+        robot.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
         # === PLACE část ===
         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
@@ -396,21 +379,17 @@ def test_2_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
         place_pose_above = utilities.tf_matrix_to_pose_vector(place_tf_above)
 
         print(f"👉 PLACE marker {pick_id} → pozice {i} na formě: {best_place}")
-        rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
-        rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
-        gripper.open()
-        rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
+        robot.moveL(place_pose_above, speed=0.1, acceleration=0.15)
+        robot.moveL(best_place, speed=0.1, acceleration=0.15)
+        robot.gripper_open()
+        robot.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 2 dokončen.")
 
-def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
+def test_3_in(robot: robot_interface.RobotInterface, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     """kalibrační podložka a hrot"""
     print("Spouštím TEST 3 – Eye-in-Hand (kalibrační hrot)")
-
-    # === Inicializace RTDE ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
 
     # === Parametry ChArUco desky ===
     square_length = 0.03
@@ -468,23 +447,19 @@ def test_3_in(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     best_pose = utilities.tf_matrix_to_pose_vector(best_pose_tf)
 
     # Pohyb k cíli
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.moveL(best_pose, speed=0.1, acceleration=0.15)
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+    robot.moveL(best_pose, speed=0.1, acceleration=0.15)
 
     print("✅ Robot namířen na levý horní roh ChArUco desky.")
     time.sleep(2)
 
     # Návrat do výchozí pozice
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 3 dokončen.")
 
 
-def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
+def test_3_to(robot: robot_interface.RobotInterface, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf):
     print("Spouštím TEST 3 – Eye-to-Hand")
-    
-    # === Inicializace RTDE ===
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
 
     # === Parametry ChArUco desky ===
     square_length = 0.03
@@ -543,21 +518,21 @@ def test_3_to(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP
     best_pose = utilities.tf_matrix_to_pose_vector(best_pose_tf)
     
     # Pohyb k cíli
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.moveL(best_pose, speed=0.05, acceleration=0.1)
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
+    robot.moveL(best_pose, speed=0.05, acceleration=0.1)
 
     print("✅ Robot namířen na levý horní roh ChArUco desky.")
     time.sleep(3)
 
     # Návrat do výchozí pozice
-    rtde_c.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
-    rtde_c.disconnect()
+    robot.moveL(utilities.tf_matrix_to_pose_vector(first_TCP_tf), speed=0.1, acceleration=0.15)
     print("✅ TEST 3 dokončen.")
 
 # ===========================================================================================================
 
 if __name__ == "__main__":
     try:
+        robot = robot_interface.RobotInterface(ip_address, mode="rtde")
         # Load calibration data using the updated function
         file_path = 'calibration_results/basic_calib_in_02_05.yaml'
         success, result, message = utilities.load_calibration_results_yaml(file_path)
@@ -571,13 +546,12 @@ if __name__ == "__main__":
         calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
         a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
         delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
-        robot = robot_interface.RobotInterface(ip_address, mode="rtde")
 
         if light_test:
-            if not utilities.enable_digital_output(ip_address, light_output_id):
+            if not utilities.enable_digital_output_rb(robot, light_output_id):
                 raise RuntimeError("Failed to turn on light.")
             
-        utilities.enable_digital_output(ip_address,1)
+        # utilities.enable_digital_output(ip_address,1)
 
         # Initialize camera
         camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -588,7 +562,7 @@ if __name__ == "__main__":
         camera.UserSetLoad.Execute()
         
         # Try to enable freedrive mode
-        success, message = utilities.enable_freedrive_mode(ip_address)
+        success, message = utilities.enable_freedrive_mode_rb(robot)
         if success:
             print("Freedrive mode enabled")
         else:
@@ -622,29 +596,27 @@ if __name__ == "__main__":
             print("Snímek úspěšně zachycen.")
 
         # Try to disable freedrive mode
-        success, message = utilities.disable_freedrive_mode(ip_address)
+        success, message = utilities.disable_freedrive_mode_rb(robot)
         if success:
             print("Freedrive mode disabled")
         else:
             raise RuntimeError(f"Failed to disable freedrive mode: {message}")
         time.sleep(1)
 
-        rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
-        first_TCP = rtde_r.getActualTCPPose()
+        first_TCP = robot.get_actual_tcp_pose()
         first_TCP_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
-        first_joints = np.array(rtde_r.getActualQ())
+        first_joints = np.array(robot.get_actual_joints())
         first_robot_tf = utilities.fk_with_corrections(first_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
-        rtde_r.disconnect()
 
         # Výběr testu podle nastavení
         test_func = globals().get(selected_test)
         if test_func:
-            test_func(ip_address, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf)
+            test_func(robot, image, X_matrix, camera_matrix, dist_coeffs, first_TCP_tf, first_robot_tf)
         else:
             print(f"Neplatný název testu: {selected_test}")
 
         if light_test:
-            utilities.disable_digital_output(ip_address, light_output_id)
+            utilities.disable_digital_output_rb(robot, light_output_id)
 
         print("✅ Test byl úspěšně dokončen.")
 

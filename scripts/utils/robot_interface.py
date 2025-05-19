@@ -7,7 +7,6 @@ import time
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils.robotiq_gripper_control import RobotiqGripper
 from utils import PLC_comunication
 
 class RobotInterface:
@@ -34,13 +33,14 @@ class RobotInterface:
             rtde_c.disconnect()
             return result
         elif self.mode == "plc_opcua":
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[0]', pose[0])
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[1]', pose[1])
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[2]', pose[2])
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[3]', pose[3])
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[4]', pose[4])
-            PLC_comunication.write_value_float(self.client,'ns=3;s="URO"."Reg 1".Floats.Register[5]', pose[5])
-            PLC_comunication.write_value_bool(self.client,'ns=3;s="GlobalDB"."Execute"', True)
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[0]', pose[0])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[1]', pose[1])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[2]', pose[2])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[3]', pose[3])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[4]', pose[4])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[5]', pose[5])
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 1) #moveL
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
             while True:
                 value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
                 print(f"Read value from FBMain_DB.Main: {value}")
@@ -51,15 +51,31 @@ class RobotInterface:
             print("MoveL and Execute set.")
             return True
 
-    def moveJ(self, joints, speed=0.5, acceleration=0.5):
+    def moveJ(self, pose, speed=0.25, acceleration=0.25):
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            result = rtde_c.moveJ(joints, speed, acceleration)
+            result = rtde_c.moveJ(pose, speed, acceleration)
             time.sleep(0.1)
             rtde_c.disconnect()
             return result
         elif self.mode == "plc_opcua":
-            return
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[0]', pose[0])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[1]', pose[1])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[2]', pose[2])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[3]', pose[3])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[4]', pose[4])
+            PLC_comunication.write_value_float(self.client,'ns=3;s="FB_DB".UserDataInput."Real".Register[5]', pose[5])
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 2) # moveJ
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+            while True:
+                value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                print(f"Read value from FBMain_DB.Main: {value}")
+                if value == 10:
+                    print("Value reached 10.")
+                    break
+                time.sleep(1)
+            print("MoveJ and Execute set.")
+            return True
 
     def get_actual_tcp_pose(self):
         if self.mode == "rtde":
@@ -86,7 +102,13 @@ class RobotInterface:
             rtde_r.disconnect()
             return joints
         elif self.mode == "plc_opcua":
-            return
+            j1 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[0]')
+            j2 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[1]')
+            j3 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[2]')
+            j4 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[3]')
+            j5 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[4]')
+            j6 = PLC_comunication.read_value_float(self.client,'ns=3;s="URI".Joints."Joint position [rad]"[5]')
+            return np.array([j1,j2,j3,j4,j5,j6])
 
     def freedriveMode(self):
         if self.mode == "rtde":
@@ -97,7 +119,17 @@ class RobotInterface:
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":
-            return
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 3) # freedrive enable
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+            while True:
+                value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                print(f"Read value from FBMain_DB.Main: {value}")
+                if value == 10:
+                    print("Value reached 10.")
+                    break
+                time.sleep(1)
+            print("Freedrive enabled.")
+            return 7
 
     def endFreedriveMode(self):
         if self.mode == "rtde":
@@ -108,7 +140,17 @@ class RobotInterface:
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":
-            return
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 4) # freedrive disable
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+            while True:
+                value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                print(f"Read value from FBMain_DB.Main: {value}")
+                if value == 10:
+                    print("Value reached 10.")
+                    break
+                time.sleep(1)
+            print("Freedrive disabled.")
+            return 1
 
     def setStandardDigitalOutput(self, output_id: int, bool: bool):
         if self.mode == "rtde":
@@ -118,8 +160,33 @@ class RobotInterface:
             rtde_IO.disconnect()
             return success
         elif self.mode == "plc_opcua":
+            if output_id == 0:
+                PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB".UserDataInput."Bool".Register[0]', bool)
+                PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 5) # set digital output 0
+                PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+                while True:
+                    value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                    print(f"Read value from FBMain_DB.Main: {value}")
+                    if value == 10:
+                        print("Value reached 10.")
+                        break
+                    time.sleep(1)
+                print("Digital output 0 set.")
+                return True
+            elif output_id == 1:
+                PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB".UserDataInput."Bool".Register[0]', bool)                
+                PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 6) # set digital output 1
+                PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+                while True:
+                    value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                    print(f"Read value from FBMain_DB.Main: {value}")
+                    if value == 10:
+                        print("Value reached 10.")
+                        break
+                    time.sleep(1)
+                print("Digital output 1 set.")
             return
-        
+                
     def getStandardDigitalOutput(self, output_id: int):
         if self.mode == "rtde":
             rtde_r = rtde_receive.RTDEReceiveInterface(self.ip)
@@ -128,6 +195,11 @@ class RobotInterface:
             rtde_r.disconnect()
             return state
         elif self.mode == "plc_opcua":
+            if output_id == 0:
+                PLC_comunication.read_value_bool(self.client,'ns=3;s="FB_DB".UserDataOutput."Bool".Register[0]') # read digital output 0
+                return True
+            elif output_id == 1:
+                PLC_comunication.read_value_bool(self.client,'ns=3;s="FB_DB".UserDataOutput."Bool".Register[1]') # read digital output 1
             return
         
     def isConnected(self):
@@ -138,6 +210,7 @@ class RobotInterface:
             rtde_r.disconnect()
             return state
         elif self.mode == "plc_opcua":
+            PLC_comunication.read_value_bool(self.client,'ns=3;s="URI".State.Robot."PW: Is power on"') # cita ci je robot pripojeny a zapnuty - bool - ak ano tak true
             return
         
     def getRobotStatus(self):
@@ -148,48 +221,74 @@ class RobotInterface:
             rtde_c.disconnect()
             return status
         elif self.mode == "plc_opcua":
+            PLC_comunication.read_value_bool(self.client,'"URI".State.Robot."Robot mode"') #  -  "URI".State.Robot."Robot mode"
             return
         
-    def gripper_activate(self):
-        if self.mode == "rtde":
-            rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            gripper = RobotiqGripper(rtde_c)
-            gripper.activate()
-            time.sleep(0.1)
-            rtde_c.disconnect()
-            return
-        elif self.mode == "plc_opcua":
-            return
+    # def gripper_activate(self): # netreba - gripper sa aktivuje na zaciatku programu
+    #     if self.mode == "rtde":
+    #         rtde_c = rtde_control.RTDEControlInterface(self.ip)
+    #         gripper = RobotiqGripper(rtde_c)
+    #         gripper.activate()
+    #         time.sleep(0.1)
+    #         rtde_c.disconnect()
+    #         return
+    #     elif self.mode == "plc_opcua":
+    #         return
         
-    def gripper_set_speed(self, speed: int = 50):
-        if self.mode == "rtde":
-            rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            gripper = RobotiqGripper(rtde_c)
-            gripper.set_speed(speed)
-            time.sleep(0.1)
-            rtde_c.disconnect()
-            return
-        elif self.mode == "plc_opcua":
-            return
+    # def gripper_set_speed(self, speed: int = 50):
+    #     if self.mode == "rtde":
+    #         rtde_c = rtde_control.RTDEControlInterface(self.ip)
+    #         gripper = RobotiqGripper(rtde_c)
+    #         gripper.set_speed(speed)
+    #         time.sleep(0.1)
+    #         rtde_c.disconnect()
+    #         return
+    #     elif self.mode == "plc_opcua":
+    #         return
         
+
+
+# Zatial nepouzivame
+
+
     def gripper_open(self):
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            gripper = RobotiqGripper(rtde_c)
-            gripper.open()
+            # gripper = RobotiqGripper(rtde_c)
+            # gripper.open()
             time.sleep(0.1)
             rtde_c.disconnect()
             return
         elif self.mode == "plc_opcua":
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 7) # gripper open
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+            while True:
+                value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                print(f"Read value from FBMain_DB.Main: {value}")
+                if value == 10:
+                    print("Value reached 10.")
+                    break
+                time.sleep(1)
+            print("MoveL and Execute set.")
             return
         
     def gripper_close(self):
         if self.mode == "rtde":
             rtde_c = rtde_control.RTDEControlInterface(self.ip)
-            gripper = RobotiqGripper(rtde_c)
-            gripper.close()
+            # gripper = RobotiqGripper(rtde_c)
+            # gripper.close()
             time.sleep(0.1)
             rtde_c.disconnect()
             return
         elif self.mode == "plc_opcua":
+            PLC_comunication.write_value_int(self.client,'ns=3;s="FB_DB"."FunctionID"', 8) # gripper close
+            PLC_comunication.write_value_bool(self.client,'ns=3;s="FB_DB"."Execute"', True)
+            while True:
+                value = PLC_comunication.read_value_int(self.client,'ns=3;s="FBMain_DB".Main')
+                print(f"Read value from FBMain_DB.Main: {value}")
+                if value == 10:
+                    print("Value reached 10.")
+                    break
+                time.sleep(1)
+            print("MoveL and Execute set.")
             return

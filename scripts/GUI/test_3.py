@@ -10,11 +10,8 @@ from global_data import GlobalData
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities, utilities_camera
-from utils.robotiq_gripper_control import RobotiqGripper
+from utils import utilities
 from ur_robot_calib_params import read_calib_data
-
-# test pomocí hrotu - nutno vyzkoušet
 
 class Test_Thread_3(QThread):
     """Thread for test 3. Test  s kalibračním hrotem."""
@@ -134,15 +131,13 @@ class Test_Thread_3(QThread):
 
                 # není nutné řešit natočení...
                 tf_matrix_list = utilities.generate_pick_poses(pose_tf)
-                pose_list_global = []
-                for i in tf_matrix_list:
-                    pose_list_global.append(first_robot_tf @ self.global_data.X_matrix @ i)
+                pose_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in tf_matrix_list]
 
                 best_pose_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pose_list_global)
 
                 # Offset ve směru lokální osy Z objektu o -1 cm (v jeho souřadném systému)
                 offset_above = np.eye(4)
-                offset_above[:3, 3] = np.array([0, 0, -0.01])  # posun o 5 cm v lokální Z ose  
+                offset_above[:3, 3] = np.array([0, 0, -0.01])  # posun o 1 cm v lokální Z ose  
                 best_pose_tf = best_pose_tf @ offset_above
                 best_pose = utilities.tf_matrix_to_pose_vector(best_pose_tf)
 
@@ -158,9 +153,7 @@ class Test_Thread_3(QThread):
 
                 # není nutné řešit natočení...
                 tf_matrix_list = utilities.generate_pick_poses(pose_tf)
-                pose_list_global = []
-                for i in tf_matrix_list:
-                    pose_list_global.append(self.global_data.X_matrix @ i)
+                pose_list_global = [self.global_data.X_matrix @ p for p in tf_matrix_list]
 
                 best_pose_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pose_list_global)
 

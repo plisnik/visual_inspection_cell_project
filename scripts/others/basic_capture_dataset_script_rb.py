@@ -9,13 +9,14 @@ from utils import utilities, utilities_camera, robot_interface
 from ur_robot_calib_params import read_calib_data
 
 # ==== PARAMETERS - customize as needed ====
-ip_address = "192.168.209.135"  # IP address of the robot
+# ip_address = "192.168.209.133"  # IP address of the robot
+ip_address = "192.168.209.133"  # IP address of the robot
 light_output_id = 0             # Digital Output ID
 light_on = True                 # Turn on the light?
 
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-data_set = "data_sets\\basic_data_set_in_05_06"
+data_set = "data_sets/basic_data_set_in_05_06"
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
 joints_pose_folder = "joints_pose"
@@ -42,7 +43,25 @@ distance = 0.38     # in metre
 
 def main():
     print("Starting calibration...")
-    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
+    robot = robot_interface.RobotInterface(ip_address, mode="plc_opcua")
+
+    # Checking whether a folder already exists
+    if os.path.exists(data_set):
+        print(f"The folder '{data_set}' already exists. Choose a different name or delete it first.")
+        sys.exit(1)
+
+    # Create a new folder
+    os.makedirs(data_set)
+
+    # Creating subfolders and updating variables to their full paths
+    image_path = os.path.join(data_set, image_folder)
+    tcp_path = os.path.join(data_set, tcp_pose_folder)
+    joints_path = os.path.join(data_set, joints_pose_folder)
+    robot_path = os.path.join(data_set, robot_pose_folder)
+    obj_path = os.path.join(data_set, obj_pose_folder)
+
+    for folder in [image_path, tcp_path, joints_path, robot_path, obj_path]:
+        os.makedirs(folder)
 
     # Switching on the light
     if light_on:
@@ -116,7 +135,7 @@ def main():
         # Eye-in-Hand calibration
         source_axis = np.array([0, 0, 1]) # robot axis aligned with the camera axis
         circle_points = utilities.generate_points_on_circle(20, 0.15, distance, source_axis)
-        circle_points_2 = utilities.generate_points_on_circle(8, 0.05, distance, source_axis)
+        # circle_points_2 = utilities.generate_points_on_circle(8, 0.05, distance, source_axis)
         plane_positions = utilities.generate_plane_points(
             img_width, img_height,
             board_width, board_height,
@@ -125,7 +144,7 @@ def main():
             source_axis
             )
         # Combine lists: origin point + valid camera positions + circular points
-        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points + circle_points_2
+        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points
 
     else:
         # Eye-to-Hand calibration
@@ -156,25 +175,6 @@ def main():
     calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
     a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
     delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
-
-    # Checking whether a folder already exists
-    if os.path.exists(data_set):
-        print(f"The folder '{data_set}' already exists. Choose a different name or delete it first.")
-        sys.exit(1)
-
-    # Create a new folder
-    os.makedirs(data_set)
-
-    # Creating subfolders and updating variables to their full paths
-    image_path = os.path.join(data_set, image_folder)
-    tcp_path = os.path.join(data_set, tcp_pose_folder)
-    joints_path = os.path.join(data_set, joints_pose_folder)
-    robot_path = os.path.join(data_set, robot_pose_folder)
-    obj_path = os.path.join(data_set, obj_pose_folder)
-
-    for folder in [image_path, tcp_path, joints_path, robot_path, obj_path]:
-        os.makedirs(folder)
-
 
     for i, point in enumerate(points):
         print(f"\nBod {i+1}/{len(points)}")

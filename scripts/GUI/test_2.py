@@ -13,8 +13,6 @@ from utils import utilities, utilities_camera
 from utils.robotiq_gripper_control import RobotiqGripper
 from ur_robot_calib_params import read_calib_data
 
-# test pomocí vytisknuté formy na krychličky
-
 class Test_Thread_2(QThread):
     """Thread for test 2. Test s formou a 4 krychličkami s aruco markery na sobě. (Pick and place 2)"""
 
@@ -145,9 +143,7 @@ class Test_Thread_2(QThread):
 
                         # === PLACE část ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
-                        place_list_global = []
-                        for i in place_list:
-                            place_list_global.append(first_robot_tf @ self.global_data.X_matrix @ i)
+                        place_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
 
@@ -212,9 +208,7 @@ class Test_Thread_2(QThread):
 
                         # === PLACE část ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
-                        place_list_global = []
-                        for i in place_list:
-                            place_list_global.append(self.global_data.X_matrix @ i)
+                        place_list_global = [self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
 

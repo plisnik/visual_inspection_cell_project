@@ -762,7 +762,7 @@ def eye_in_hand_calibration(
     # Decompose transformation matrices of the object
     R_target2cam, t_target2cam = decompose_tf_matrices(obj_pose_tf_list)
 
-    if calibration_method in (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+    if method_str in ("LI (world)", "SHAH (world)"):
         # Perform Robot-World/Hand-Eye calibration
         R_base2target_W, t_base2target_W, R_grip2cam_W, t_grip2cam_W = cv2.calibrateRobotWorldHandEye(
             R_target2cam, t_target2cam,

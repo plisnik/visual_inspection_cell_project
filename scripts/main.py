@@ -10,11 +10,10 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
     QPushButton, QSizePolicy, QSlider, QSpacerItem,
     QStackedWidget, QStatusBar, QTabWidget, QToolButton,
     QWidget, QFileDialog, QDialog, QMessageBox)
-import time
 import os
 import sys
 import numpy as np
-from utils import utilities_camera, utilities
+from utils import utilities
 from GUI.global_data import GlobalData
 from GUI.UI.main_window_ui import Ui_MainWindow
 from GUI.camera_check import CameraCheck
@@ -73,7 +72,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.b_set_IP.clicked.connect(self.set_ip_address)
         self.slider_light.valueChanged.connect(self.update_slider_light)
         self.slider_config.valueChanged.connect(self.update_slider_config)
-        self.comboBox_methods.insertItem(0, "--- Vyber metodu ---")
+        self.comboBox_methods.insertItem(0, "--- Choose a method ---")
         self.comboBox_methods.setCurrentIndex(0)
         self.comboBox_methods.currentIndexChanged.connect(self.update_calib_method)
         self.b_initial_adjustment.clicked.connect(self.camera_init_adjust)
@@ -88,10 +87,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Slidery - konfigurace a osvětlení
         self.slider_light_test.valueChanged.connect(self.update_slider_light_test)
         self.slider_config_test.valueChanged.connect(self.update_slider_config_test)
-        self.b_test_1.setEnabled(False)
-        self.b_test_2.setEnabled(False)
+        # self.b_test_1.setEnabled(False)
+        # self.b_test_2.setEnabled(False)
+        # self.b_test_3.setEnabled(False)
         self.b_test_1.clicked.connect(self.start_test_1)
         self.b_test_2.clicked.connect(self.start_test_2)
+        self.b_test_3.clicked.connect(self.start_test_2)
 
         # SETTINGS  ---------------------------------------------------------------------
         # Connect buttons to actions

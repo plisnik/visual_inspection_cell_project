@@ -102,54 +102,6 @@ def get_object_pose(object_points: np.ndarray, image_points: np.ndarray,
 
     return rvec.flatten(), tvec.flatten()
 
-# není potřeba
-def calibrate_lens(image_list: list, pattern_points: np.ndarray, pattern_size: tuple) -> tuple:
-    """
-    Calibrates the camera lens using a list of images containing a chessboard pattern.
-
-    This function finds corners in the provided images and computes the camera matrix and distortion coefficients
-    using the cv2.calibrateCamera function from OpenCV.
-
-    Parameters:
-        image_list (list): A list of images (as numpy arrays) containing a chessboard pattern for calibration.
-        pattern_points (np.ndarray): An array of object points corresponding to the chessboard corners.
-
-    Returns:
-        tuple: A tuple containing:
-            - camera_matrix (np.ndarray): The intrinsic camera matrix (3x3).
-            - dist_coeffs (np.ndarray): The distortion coefficients (5x1).
-
-    Raises:
-        Exception: If corners cannot be found in any of the images.
-
-    Notes:
-        - The function assumes a pre-defined set of object points corresponding to the chessboard corners.
-        - It is essential that the chessboard pattern is consistent across the images for accurate calibration.
-    """
-    img_points, obj_points = [], []
-    h, w = 0, 0
-
-    # Loop through each image in the provided list
-    for img in image_list:
-        h, w = img.shape[:2]
-        
-        # Find corners in the chessboard pattern
-        found, corners = find_corners(img,pattern_size)
-        if not found:
-            raise Exception("Chessboard calibration failed: Unable to find corners in the image.")
-
-        img_points.append(corners.reshape(-1, 2))  # Reshape corners to 2D points
-        obj_points.append(pattern_points)  # Add the corresponding object points
-
-    # Initialize camera matrix and distortion coefficients
-    camera_matrix = np.zeros((3, 3))
-    dist_coeffs = np.zeros(5)
-
-    # Calibrate the camera using the found image points and object points
-    rms, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, (w, h), None, None)
-
-    return camera_matrix, dist_coeffs
-
 def save_current_frame(directory: str, frame: np.ndarray) -> str:
     """
     Saves the given frame to the specified directory under the name imageXX.png.

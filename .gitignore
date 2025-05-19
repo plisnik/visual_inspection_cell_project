@@ -14,16 +14,15 @@ venv/
 __pycache__/
 *.py[cod]
 
-
-
 # custom
-error_calc.py
-camera-reprojection-error.py
+metrics_visualization.py
+error_calc copy.py
 pokus.py
 pokus_1.py
 test_camera.py
 _TO_DO.txt
 
-saved_data_kamera_robot/
+poloha_robota_presne/
 data_sets/
 calibration_results/
+grafy/

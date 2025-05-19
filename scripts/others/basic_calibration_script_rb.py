@@ -1,13 +1,11 @@
 import numpy as np
 import time
-import rtde_control
-import rtde_receive
 from pypylon import pylon
 import cv2
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities, utilities_camera
+from utils import utilities, utilities_camera, robot_interface
 from ur_robot_calib_params import read_calib_data
 
 # PŘEDĚLAT NA ROBOT INTERFACE CLASS
@@ -59,10 +57,24 @@ distance = 0.25     # v metrech
 
 def main():
     print("Spouštím kalibraci...")
+    robot = robot_interface.RobotInterface(ip_address, mode="rtde")
+
+    # Vytvoření nové složky
+    os.makedirs(data_set)
+
+    # Vytvoření podsložek a aktualizace proměnných na jejich plné cesty
+    image_path = os.path.join(data_set, image_folder)
+    tcp_path = os.path.join(data_set, tcp_pose_folder)
+    joints_path = os.path.join(data_set, joints_pose_folder)
+    robot_path = os.path.join(data_set, robot_pose_folder)
+    obj_path = os.path.join(data_set, obj_pose_folder)
+
+    for folder in [image_path, tcp_path, joints_path, robot_path, obj_path]:
+        os.makedirs(folder)
 
     # Zapnutí světla
     if light_on:
-        if not utilities.enable_digital_output(ip_address, light_output_id):
+        if not utilities.enable_digital_output_rb(robot, light_output_id):
             raise RuntimeError("Nepodařilo se zapnout světlo")
         
     # Initialize camera
@@ -74,7 +86,7 @@ def main():
     camera.UserSetLoad.Execute()
 
     # Try to enable freedrive mode
-    success, message = utilities.enable_freedrive_mode(ip_address)
+    success, message = utilities.enable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode enabled")
     else:
@@ -112,7 +124,7 @@ def main():
         print("Snímek úspěšně zachycen.")
 
     # Try to disable freedrive mode
-    success, message = utilities.disable_freedrive_mode(ip_address)
+    success, message = utilities.disable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode disabled")
     else:
@@ -158,11 +170,8 @@ def main():
         # Combine lists: origin point + valid camera positions + circular points/_2
         points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points_2
 
-
-    rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
-    first_TCP = rtde_r.getActualTCPPose()
+    first_TCP = np.array(robot.get_actual_tcp_pose())
     first_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
-    rtde_r.disconnect()
     
     # Kalibrační soubory
     urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
@@ -175,20 +184,6 @@ def main():
         print(f"Složka '{data_set}' už existuje. Zvol jiný název nebo ji nejdřív smaž.")
         sys.exit(1)  # Ukončí program s chybovým kódem
 
-    # Vytvoření nové složky
-    os.makedirs(data_set)
-
-    # Vytvoření podsložek a aktualizace proměnných na jejich plné cesty
-    image_path = os.path.join(data_set, image_folder)
-    tcp_path = os.path.join(data_set, tcp_pose_folder)
-    joints_path = os.path.join(data_set, joints_pose_folder)
-    robot_path = os.path.join(data_set, robot_pose_folder)
-    obj_path = os.path.join(data_set, obj_pose_folder)
-
-    for folder in [image_path, tcp_path, joints_path, robot_path, obj_path]:
-        os.makedirs(folder)
-
-
     for i, point in enumerate(points):
         print(f"\nBod {i+1}/{len(points)}")
 
@@ -196,24 +191,20 @@ def main():
         point_base_tf = first_tf @ point_tf
         point_base = utilities.tf_matrix_to_pose_vector(point_base_tf)
 
-        rtde_c = rtde_control.RTDEControlInterface(ip_address)
-        rtde_c.moveL(point_base, speed=0.25, acceleration=0.25)
-        time.sleep(1)
-        rtde_c.disconnect()
+        robot.moveL(point_base, speed=0.25, acceleration=0.25)
+        time.sleep(0.5)
 
         grab_result = camera.GrabOne(2000)
         if not grab_result.GrabSucceeded():
-            raise TimeoutError("❌ Nepodařilo se získat snímek z kamery")
+            raise TimeoutError("Couldn't get a picture from the camera")
 
         image = grab_result.Array
         image = cv2.cvtColor(image, cv2.COLOR_BAYER_BG2BGR)
         path = utilities_camera.save_current_frame(image_path, image)
-        print(f"Uložen snímek: {path}")
+        print(f"Saved image: {path}")
 
-        rtde_r = rtde_receive.RTDEReceiveInterface(ip_address)
-        actual_TCP = rtde_r.getActualTCPPose()
-        actual_joints = np.array(rtde_r.getActualQ())
-        rtde_r.disconnect()
+        actual_TCP = np.array(robot.get_actual_tcp_pose())
+        actual_joints = np.array(robot.get_actual_joints())
 
         tf_matrix = utilities.pose_vector_to_tf_matrix(actual_TCP)
         robot_fk = utilities.fk_with_corrections(actual_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
@@ -224,14 +215,12 @@ def main():
 
     camera.Close()
 
-    rtde_c = rtde_control.RTDEControlInterface(ip_address)
-    rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
+    robot.moveL(first_TCP, speed=0.1, acceleration=0.15)
     time.sleep(1)
-    rtde_c.disconnect()
 
     # Vypnutí světla
     if light_on:
-        utilities.disable_digital_output(ip_address, light_output_id)
+        utilities.disable_digital_output_rb(robot, light_output_id)
 
     print("\nSpouštím výpočet kalibrace...")
     camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities.calibrate_camera_with_charuco(

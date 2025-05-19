@@ -11,13 +11,13 @@ from utils import utilities, utilities_camera, robot_interface
 from ur_robot_calib_params import read_calib_data
 
 # ==== PARAMETERS - customize as needed ====
-ip_address = "192.168.209.135"  # IP address of the robot
+ip_address = "192.168.209.133"  # IP address of the robot
 light_output_id = 0             # Digital Output ID
 light_on = True                 # Turn on the light?
 
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-data_set = "data_sets\\basic_data_set_in_mereni_25_04"
+data_set = "data_sets/data_set_in_05_15"
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
 joints_pose_folder = "joints_pose"
@@ -116,6 +116,7 @@ def main():
         # Eye-in-Hand calibration
         source_axis = np.array([0, 0, 1]) # robot axis aligned with the camera axis
         circle_points = utilities.generate_points_on_circle(8, 0.15, distance, source_axis)
+        circle_points_2 = utilities.generate_points_on_circle(8, 0.2, distance*0.9, source_axis)
         plane_positions = utilities.generate_plane_points(
             img_width, img_height,
             board_width, board_height,
@@ -124,7 +125,7 @@ def main():
             source_axis
             )
         # Combine lists: origin point + valid camera positions + circular points
-        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points
+        points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points + circle_points_2
 
     else:
         # Eye-to-Hand calibration
