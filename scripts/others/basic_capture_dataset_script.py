@@ -15,9 +15,9 @@ ip_address = "192.168.209.133"  # IP address of the robot
 light_output_id = 0             # Digital Output ID
 light_on = True                 # Turn on the light?
 
-calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
+calib_config = 1                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
-data_set = "data_sets/data_set_in_05_15"
+data_set = "data_sets/data_set_to_05_20"
 image_folder = "cam_pictures"
 tcp_pose_folder = "tcp_pose_tf"
 joints_pose_folder = "joints_pose"
@@ -25,10 +25,10 @@ robot_pose_folder = "robot_pose_tf"
 obj_pose_folder = "obj_pose_tf"
 
 # === Parameters of the ChArUco board ===
-square_length = 0.03
-marker_length = 0.022
-board_rows = 6
-board_cols = 8
+square_length = 0.016
+marker_length = 0.012
+board_rows = 8
+board_cols = 10
 board_size = (board_cols, board_rows)
 board_width = board_cols * square_length
 board_height = board_rows * square_length
