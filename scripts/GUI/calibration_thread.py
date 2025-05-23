@@ -35,7 +35,7 @@ class CalibrationThread(QThread):
 
                 # Generate calibration points
                 self.img_width, self.img_height = self.global_data.image_shape
-                source_axis = np.array([0, 0, 1]) # osa robota zarovnaná s osou kamery
+                source_axis = np.array([0, 0, 1]) # robot axis aligned with camera axis
                 circle_points = utilities.generate_points_on_circle(8, 0.15, self.global_data.distance, source_axis)
                 plane_positions = utilities.generate_plane_points(
                     self.img_width, self.img_height,
@@ -53,7 +53,7 @@ class CalibrationThread(QThread):
 
                 # Generate calibration points
                 self.img_width, self.img_height = self.global_data.image_shape
-                source_axis = np.array([1, 0, 0]) # osa robota (gripperu) kolmá na podložku směřující na kameru
+                source_axis = np.array([1, 0, 0]) # axis of the robot (gripper) perpendicular to the pad pointing at the camera
                 circle_points = utilities.generate_points_on_circle(8, 0.1, self.global_data.distance, source_axis)
                 plane_positions = utilities.generate_plane_points(
                     self.img_width, self.img_height,
@@ -65,7 +65,7 @@ class CalibrationThread(QThread):
                 # Combine lists: origin point + valid camera positions + circular points
                 self.points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points
 
-            # zapnutí světla
+            # turning on the light
             if self.global_data.light:
                 if not utilities.enable_digital_output(self.global_data.ip_address, self.global_data.light_output_id):
                     raise RuntimeError("Failed to turn on light.")
@@ -85,7 +85,7 @@ class CalibrationThread(QThread):
 
             total_points = len(self.points)
 
-            # Potřeba mít parametry robota
+            # Need to have robot parameters
             urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
             calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
             a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
@@ -103,9 +103,9 @@ class CalibrationThread(QThread):
                 point_base = utilities.tf_matrix_to_pose_vector(point_base_tf)
 
                 self.rtde_c = rtde_control.RTDEControlInterface(self.global_data.ip_address)
-                # Pohyb na danou pozici (Lineární pohyb)
+                # Movement to a given position (Linear movement)
                 self.rtde_c.moveL(point_base, speed=0.25, acceleration=0.25)
-                time.sleep(1) # Pro stabilizaci robota
+                time.sleep(1) # To stabilise the robot
                 self.rtde_c.disconnect()
                 # Capture an image using the camera
                 grab_result = self.camera.GrabOne(2000)  # Timeout 2 second
@@ -143,7 +143,7 @@ class CalibrationThread(QThread):
                 self.cleanup()
                 return  # Exit thread safely
             
-            # vypnutí světla
+            # turning off the light
             utilities.disable_digital_output(self.global_data.ip_address, self.global_data.light_output_id)
 
             # Finalize calibration

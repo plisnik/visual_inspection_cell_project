@@ -10,6 +10,9 @@ venv/
 # Logs
 *.log
 
+# Calib results
+*.yaml
+
 # Byte-compiled / cache files
 __pycache__/
 *.py[cod]
@@ -26,5 +29,4 @@ requirements-file.md
 
 poloha_robota_presne/
 data_sets/
-calibration_results/
 grafy/

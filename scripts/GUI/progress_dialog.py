@@ -12,7 +12,6 @@ class CalibrationProgressDialog(QDialog):
         super(CalibrationProgressDialog, self).__init__()
         self.setWindowTitle("Calibration in Progress")
         self.setModal(True)  # Prevent interaction with the main window
-        # nelze zavřít okno
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
         
         self.global_data = global_data

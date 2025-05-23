@@ -31,7 +31,7 @@ class CameraThread(QThread):
             self.is_running = True
             self.logger.info("Camera connected and acquisition started.")
 
-            fail_counter = 0  # Počet po sobě jdoucích neúspěšných pokusů
+            fail_counter = 0  # Number of consecutive unsuccessful attempts
             # Image acquisition loop
             while self.camera.IsGrabbing() and self.is_running:
                 grab_result = self.camera.RetrieveResult(500, pylon.TimeoutHandling_Return)
@@ -49,7 +49,7 @@ class CameraThread(QThread):
                         error_msg = "Error capturing image from camera (5 consecutive failures)."
                         self.logger.error(error_msg)
                         self.error_signal.emit(error_msg)
-                        fail_counter = 0  # Reset i po nahlášení chyby, aby se neemitovalo každou iteraci
+                        fail_counter = 0  # Reset even after an error is reported, so that it is not emitted every iteration
 
         except Exception as e:
             error_msg = f"Camera error: {str(e)}"

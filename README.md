@@ -67,10 +67,13 @@ The repository is organized as follows:
 │   └── main.py                # Application entry point
 ├── data_sets/                 # Directory for calibration data
 │   └── temporary_data_set/    # Working directory for calibration process
+├── calibration_results/       # Directory for calibration results
 ├── logs/                      # Application logs
 ├── models/                    # CAD models
+├── user_documentation.pdf     # User documentation
 ├── LICENSE.md                 # License information
 └── README.md                  # This file
+
 ```
 
 ## Usage

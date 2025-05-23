@@ -84,12 +84,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEdit_size_marker.setValidator(QIntValidator(0, 999))
 
         # TEST  ------------------------------------------------------------------------
-        # Slidery - konfigurace a osvětlení
+        # Slidery - configuration and lighting
         self.slider_light_test.valueChanged.connect(self.update_slider_light_test)
         self.slider_config_test.valueChanged.connect(self.update_slider_config_test)
-        # self.b_test_1.setEnabled(False)
-        # self.b_test_2.setEnabled(False)
-        # self.b_test_3.setEnabled(False)
         self.b_test_1.clicked.connect(self.start_test_1)
         self.b_test_2.clicked.connect(self.start_test_2)
         self.b_test_3.clicked.connect(self.start_test_2)
@@ -122,9 +119,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.widget.start_signal.connect(lambda: QTimer.singleShot(0, self.test_1))
         
         # Show the adjustment window
-        self.logger.info("Otevírání test initial window")
+        self.logger.info("Opening test initial window")
         self.widget.exec()
-        self.logger.debug("Okno test initial zavřeno")
+        self.logger.debug("Test initial window closed")
 
     def test_1(self):
         # Initialize progress dialog and test thread
@@ -132,9 +129,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.test_thread = Test_Thread_1(self.global_data)
         
         # Connect signals
-        self.test_thread.finished_signal.connect(self.test_finished)  # Vlastní slot po dokončení testu
+        self.test_thread.finished_signal.connect(self.test_finished)  # Custom slot after test completion
         self.test_thread.stop_signal.connect(self.test_stopped)
-        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)  # Uživatel chce přerušit test
+        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)  # User wants to abort the test
 
         # Start the test
         self.logger.debug("Launching test thread")
@@ -144,11 +141,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def test_finished(self):
         self.logger.info("Test process finished")
 
-        # Změna textu a deaktivace tlačítka STOP
+        # Changing the text and deactivating the STOP button
         self.progress_dialog_test.label.setText("Test completed successfully.")
         self.progress_dialog_test.stop_button.setEnabled(False)
 
-        # Zavření okna po 2 sekundách
+        # Closing the window after 2 seconds
         QTimer.singleShot(2000, self.progress_dialog_test.close)
 
     def test_stopped(self):
@@ -179,9 +176,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.test_thread = Test_Thread_2(self.global_data)
         
         # Connect signals
-        self.test_thread.finished_signal.connect(self.test_finished)  # Vlastní slot po dokončení testu
+        self.test_thread.finished_signal.connect(self.test_finished)
         self.test_thread.stop_signal.connect(self.test_stopped)
-        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)  # Uživatel chce přerušit test
+        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)
 
         # Start the test
         self.logger.debug("Launching test thread")

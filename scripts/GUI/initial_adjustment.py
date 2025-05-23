@@ -135,8 +135,6 @@ class InitialAdjustment(QDialog, Ui_Initial_adjustment):
 
         self.b_setup.setEnabled(has_image and has_distance)
 
-        # self.logger.debug(f"Setup button {'enabled' if has_image and has_distance else 'disabled'}")
-
     def emit_setup_signal(self):
         """Emit a signal to the main window indicating the setup button was pressed."""
         self.global_data.distance = float(self.lineEdit_distance.text()) / 1000
@@ -222,14 +220,3 @@ class InitialAdjustment(QDialog, Ui_Initial_adjustment):
             return  # Do nothing (ignore Enter key)
         super().keyPressEvent(event)  # Process other keys normally
 
-# potom smazat je to jen na test
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    global_data = GlobalData.get_instance()
-
-    global_data.image_global = cv2.imread('charuco_board_1.jpg')
-
-    window = InitialAdjustment(global_data)
-    window.show()
-
-    sys.exit(app.exec())

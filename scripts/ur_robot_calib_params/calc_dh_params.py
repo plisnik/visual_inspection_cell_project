@@ -6,7 +6,6 @@ from scipy.optimize import least_squares
 from read_calib_data import load_dh_parameters_from_urcontrol, load_mounting_calibration_parameters
 from typing import List
 from utils.utilities import fk_with_corrections, load_npy_data
-import nevergrad as ng
 
 def objective_function(x: np.ndarray, thetas_list: List[np.ndarray], a: np.ndarray, d: np.ndarray, 
                        alpha: np.ndarray, target_matrices: List[np.ndarray]) -> np.ndarray:
@@ -62,12 +61,24 @@ def save_mounting_config(
     """
     Saves mounting correction data to a .conf file in a specific format.
 
-    Args:
-        file_path (str): Path to the .conf file (e.g. 'calibration/mounting.conf').
-        delta_theta (list): List of delta_theta values (length 6).
-        delta_a (list): List of delta_a values (length 6).
-        delta_d (list): List of delta_d values (length 6).
-        delta_alpha (list): List of delta_alpha values (length 6).
+    This function writes robot calibration correction parameters to a configuration file
+    in the format expected by the robot control system. The parameters are saved in
+    a specific section named [mounting] with proper formatting.
+
+    Parameters:
+        file_path (str): Path to the output .conf file (e.g., 'calibration/mounting.conf')
+        delta_theta (List[float]): List of angular offset corrections for 6 joints (radians)
+        delta_a (List[float]): List of link length corrections for 6 joints (meters)
+        delta_d (List[float]): List of link offset corrections for 6 joints (meters)  
+        delta_alpha (List[float]): List of link twist corrections for 6 joints (radians)
+
+    Returns:
+        None
+
+    Notes:
+        - All parameter lists must have exactly 6 elements (one per robot joint)
+        - The file format follows the robot manufacturer's configuration standard
+        - Values are formatted with high precision (17 significant digits)
     """
     with open(file_path, 'w') as f:
         f.write("[mounting]\n")
@@ -79,22 +90,46 @@ def save_mounting_config(
 
 def format_list(values: list) -> str:
     """
-    Formats a list of floats into a string suitable for .conf output.
+    Formats a list of float values into a string suitable for configuration file output.
 
-    Args:
-        values (list): List of float values.
+    This function converts a list of numerical values into a properly formatted string
+    that can be written to configuration files. The format includes square brackets
+    and comma separation with high precision formatting.
+
+    Parameters:
+        values (List[float]): List of numerical values to be formatted
 
     Returns:
-        str: Formatted string.
+        str: Formatted string in the format "[ value1, value2, value3, ... ]"
+
+    Notes:
+        - Values are formatted with 17 significant digits for maximum precision
+        - The output format is compatible with robot configuration file standards
+        - Empty lists will result in "[ ]"
     """
     return "[ " + ", ".join(f"{v:.17g}" for v in values) + "]"
 
 
 def main():
+    """
+    Main function for robot calibration parameter optimization.
+
+    This function orchestrates the complete calibration process including loading
+    calibration data, optimizing correction parameters using least squares method,
+    saving results to configuration file, and comparing with reference values.
+
+    Notes:
+        - The function handles the complete calibration workflow
+        - File paths are defined as constants at the beginning
+        - Results are both saved to file and printed for verification
+        - Comparison with reference values helps validate optimization accuracy
+    """
+    # Configuration file paths
     data_set = "data_sets/basic_data_set"
     urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
     calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
 
+    # Load calibration data (joint angles and transformation matrices)
     joints_folder = os.path.join(data_set,'joints_pose')
     target_matrices_folder = os.path.join(data_set,'robot_pose_tf')
     
@@ -109,12 +144,13 @@ def main():
     print(f"alpha = {alpha}")
 
     # Initial estimate for the correction parameters delta_a, delta_d, delta_alpha, delta_theta
+    # All parameters start at zero (no correction
     x0 = np.zeros(24)
 
-    # Optimalization
+    # Optimization using least squares method
     result = least_squares(objective_function, x0, args=(thetas_list, a, d, alpha, target_matrices))
 
-    # Resulting correction parameters
+    # Extract resulting correction parameters from optimization result
     delta_theta_opt = result.x[:6]
     delta_a_opt = result.x[6:12]
     delta_d_opt = result.x[12:18]
@@ -125,7 +161,8 @@ def main():
     print("Optimized delta_alpha:", delta_alpha_opt)
     print("Optimized delta_theta:", delta_theta_opt)
 
-    file_path = 'scripts/ur_robot_calib_params/UR_calibration/calibration_experiment.conf'
+    # Save optimized parameters to configuration file
+    file_path = 'scripts/ur_robot_calib_params/UR_calibration/calibration_experiment_1.conf'
     save_mounting_config(file_path, delta_theta_opt, delta_a_opt, delta_d_opt, delta_alpha_opt)
 
     # Loading and processing the calibrATION.conf file
@@ -136,7 +173,8 @@ def main():
     print("Delta_alpha:", delta_alpha)
     print("Delta_theta:", delta_theta)
 
-    print("Rozdíl:")
+    # Calculate and display differences between reference and optimized values
+    print("Difference:")
     print(delta_theta - delta_theta_opt)
     print(delta_a - delta_a_opt)
     print(delta_d - delta_d_opt)

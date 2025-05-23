@@ -18,9 +18,6 @@ from global_data import GlobalData
 from UI.camera_check_ui import Ui_Camera_check
 from camera_thread_class import CameraThread
 
-# bude potřeba jinde, nelze pak zavřít okno
-# self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
-
 class CameraCheck(QDialog, Ui_Camera_check):
     """
     Dialog window for camera preview and checking functionality.
@@ -79,17 +76,5 @@ class CameraCheck(QDialog, Ui_Camera_check):
         self.stop_camera()
         event.accept()
 
-
-# potom smazat je to jen na test
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    global_data = GlobalData.get_instance()
-
-    global_data.image_global = cv2.imread('charuco_board_1.jpg')
-
-    window = CameraCheck()
-    window.show()
-
-    sys.exit(app.exec())
 
 

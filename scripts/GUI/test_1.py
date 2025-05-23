@@ -31,13 +31,13 @@ class Test_Thread_1(QThread):
             # Initialize robot interface
             self.rtde_r = rtde_receive.RTDEReceiveInterface(self.global_data.ip_address)
             
-            # Potřeba mít parametry robota
+            # Need to have robot parameters
             urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
             calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
             a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
             delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
 
-            # zapnutí světla
+            # turning on the light
             if self.global_data.light_test:
                 if not utilities.enable_digital_output(self.global_data.ip_address, self.global_data.light_output_id):
                     raise RuntimeError("Failed to turn on light.")
@@ -59,7 +59,6 @@ class Test_Thread_1(QThread):
             self.camera.UserSetSelector.SetValue("UserSet1")
             self.camera.UserSetLoad.Execute()
             
-            # Snímek
             # Capture an image using the camera
             grab_result = self.camera.GrabOne(2000)  # Timeout 2 second
             if grab_result.GrabSucceeded():
@@ -70,7 +69,7 @@ class Test_Thread_1(QThread):
                 self.logger.warning("Failed to capture image.")
                 raise TimeoutError("Failed to capture image.")
             
-            # detekovat věci na snímku
+            # detection of things in the image
             ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(image,
                                                                                                    self.global_data.camera_matrix, 
                                                                                                    self.global_data.dist_coeffs, 
@@ -82,7 +81,7 @@ class Test_Thread_1(QThread):
                 self.cleanup()
                 return
             
-            # Mapování markerů: ID → transformační matice
+            # Marker mapping: ID → transformation matrix
             marker_dict = {int(id_): tf for id_, tf in zip(ids.flatten(), transf_matrices)}   
             
             if not self.is_running:
@@ -90,7 +89,7 @@ class Test_Thread_1(QThread):
                 self.cleanup()
                 return  # Exit thread safely
             
-            # Generování bodů podle konfigurace
+            # Generating points by configuration
             if self.global_data.calib_config_test == 0:
                 # Eye-in-Hand
                 self.logger.info("Calibration test Eye-in-Hand process started.")
@@ -114,7 +113,7 @@ class Test_Thread_1(QThread):
                         tf_pick_camera = marker_dict[pick_id]
                         tf_place_camera = marker_dict[place_id]
 
-                        # === PICK část ===
+                        # === PICK part ===
                         pick_list = utilities.generate_pick_poses_z_down(tf_pick_camera)
                         pick_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in pick_list]
 
@@ -126,29 +125,29 @@ class Test_Thread_1(QThread):
                             self.cleanup()
                             return  # Exit thread safely
 
-                        # Offset ve směru lokální osy Z objektu o -5 cm (v jeho souřadném systému)
+                        # Offset in the direction of the local Z axis of the object by -5 cm (in its coordinate system)
                         offset_above = np.eye(4)
-                        offset_above[:3, 3] = np.array([0, 0, -0.05])  # posun o 5 cm v lokální Z ose
+                        offset_above[:3, 3] = np.array([0, 0, -0.05])  # shift of 5 cm in local Z axis
                         pick_tf_above = best_pick_tf @ offset_above
                         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-                        # PICK SEKVENCE
+                        # Pick sequence
                         self.logger.info(f"Picking marker {pick_id} from {best_pick}")
                         self.rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
                         self.rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
 
-                        # ZAVŘÍT GRIPPER
+                        # Close gripper
                         gripper.close()
 
                         self.rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
-                        # === PLACE část ===
+                        # === PLACE part ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
                         place_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
                         
-                        # podle výšky kostky + kousek
+                        # according to the height of the cube + 10%
                         offset_place = np.eye(4)
                         offset_place[:3, 3] = np.array([0, 0, -0.033])
                         best_place_tf = best_place_tf @ offset_place
@@ -161,13 +160,13 @@ class Test_Thread_1(QThread):
                         self.rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
                         self.rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
 
-                        # OTEVŘÍT GRIPPER
+                        # Open gripper
                         gripper.open()
 
                         self.rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
                     else:
-                        self.logger.warning(f"Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
+                        self.logger.warning(f"Marker {pick_id} or {place_id} was not detected - skipped.")
 
             else:
                 # Eye-to-Hand
@@ -192,7 +191,7 @@ class Test_Thread_1(QThread):
                         tf_pick_camera = marker_dict[pick_id]
                         tf_place_camera = marker_dict[place_id]
 
-                        # === PICK část ===
+                        # === PICK part ===
                         pick_list = utilities.generate_pick_poses_z_down(tf_pick_camera)
                         pick_list_global = [self.global_data.X_matrix @ p for p in pick_list]
 
@@ -204,29 +203,29 @@ class Test_Thread_1(QThread):
                             self.cleanup()
                             return  # Exit thread safely
 
-                        # Offset ve směru lokální osy Z objektu o -5 cm (v jeho souřadném systému)
+                        # Offset in the direction of the local Z axis of the object by -5 cm (in its coordinate system)
                         offset_above = np.eye(4)
-                        offset_above[:3, 3] = np.array([0, 0, -0.05])  # posun o 5 cm v lokální Z ose
+                        offset_above[:3, 3] = np.array([0, 0, -0.05])  # shift of 5 cm in local Z axis
                         pick_tf_above = best_pick_tf @ offset_above
                         pick_pose_above = utilities.tf_matrix_to_pose_vector(pick_tf_above)
 
-                        # PICK SEKVENCE
+                        # Pick sequence
                         self.logger.info(f"Picking marker {pick_id} from {best_pick}")
                         self.rtde_c.moveL(pick_pose_above, speed=0.1, acceleration=0.15)
                         self.rtde_c.moveL(best_pick, speed=0.1, acceleration=0.15)
 
-                        # ZAVŘÍT GRIPPER
+                        # Close gripper
                         gripper.close()
 
                         self.rtde_c.moveL(pick_pose_above, speed=0.2, acceleration=0.3)
 
-                        # === PLACE část ===
+                        # === PLACE part ===
                         place_list = utilities.generate_pick_poses_z_down(tf_place_camera)
                         place_list_global = [self.global_data.X_matrix @ p for p in place_list]
 
                         best_place_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, place_list_global)
                         
-                        # podle výšky kostky + kousek
+                        # according to the height of the cube + 10%
                         offset_place = np.eye(4)
                         offset_place[:3, 3] = np.array([0, 0, -0.033])
                         best_place_tf = best_place_tf @ offset_place
@@ -240,13 +239,13 @@ class Test_Thread_1(QThread):
                         self.rtde_c.moveL(place_pose_above, speed=0.1, acceleration=0.15)
                         self.rtde_c.moveL(best_place, speed=0.1, acceleration=0.15)
 
-                        # OTEVŘÍT GRIPPER
+                        # Open gripper
                         gripper.open()
 
                         self.rtde_c.moveL(place_pose_above, speed=0.2, acceleration=0.3)
 
                     else:
-                        self.logger.warning(f"Marker {pick_id} nebo {place_id} nebyl detekován – přeskočeno.")
+                        self.logger.warning(f"Marker {pick_id} or {place_id} was not detected - skipped.")
 
             self.rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
             self.rtde_c.disconnect()
@@ -257,7 +256,7 @@ class Test_Thread_1(QThread):
                 self.cleanup()
                 return  # Exit thread safely
             
-            # vypnutí světla
+            # turning off the light
             utilities.disable_digital_output(self.global_data.ip_address, self.global_data.light_output_id)
 
             # Finalize calibration
