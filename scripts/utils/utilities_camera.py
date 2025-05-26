@@ -5,102 +5,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from typing import List, Tuple, Dict, Optional, Union, Any
 import cv2
+from pypylon import pylon
+from utils import utilities
 
-# není potřeba
-def find_corners(image: np.ndarray, pattern_size: tuple) -> tuple:
-    """
-    Finds the corners of a chessboard pattern in the given image.
-
-    This function checks if the image is colored and converts it to grayscale if it is.
-    Then, it uses the OpenCV function to find the chessboard corners and refines their positions.
-
-    Parameters:
-        image (np.ndarray): The input image in which to find the chessboard corners.
-        pattern_size (tuple): The number of inner corners per a chessboard row and column,
-            defined as (number_of_inner_corners_x, number_of_inner_corners_y).
-
-    Returns:
-        tuple: A tuple containing:
-            - found (bool): True if the corners were found, False otherwise.
-            - corners (np.ndarray): An array of corner points if found, otherwise None.
-
-    Notes:
-        - The function uses OpenCV's findChessboardCorners and cornerSubPix methods.
-        - It applies corner refinement to enhance the accuracy of the detected corner positions.
-    """
-    # Convert to grayscale if the image is colored (has 3 channels)
-    if len(image.shape) > 2 and image.shape[2] == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Find the chessboard corners in the image
-    found, corners = cv2.findChessboardCorners(image, pattern_size)
-
-    # Define termination criteria for corner refinement
-    term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
-
-    # If corners are found, refine their positions
-    if found:
-        cv2.cornerSubPix(image, corners, (5, 5), (-1, -1), term)
-
-    return found, corners
-
-# není potřeba
-def draw_corners(image: np.ndarray, corners: np.ndarray, pattern_size: tuple) -> np.ndarray:
-    """
-    Draws the corners of a chessboard pattern on the given image.
-
-    This function converts the input image to color (if it is in grayscale)
-    and then uses OpenCV's drawChessboardCorners function to overlay the detected corners.
-
-    Parameters:
-        image (np.ndarray): The input image on which to draw the chessboard corners.
-        corners (np.ndarray): An array of corner points detected in the image.
-        pattern_size (tuple): The number of inner corners per a chessboard row and column,
-            defined as (number_of_inner_corners_x, number_of_inner_corners_y).
-
-    Returns:
-        np.ndarray: The color image with the chessboard corners drawn on it.
-
-    Notes:
-        - The function assumes the input image is in grayscale or has been converted to grayscale.
-        - The corners are drawn as green dots on the image.
-    """
-    # Convert the image to color if it is grayscale
-    color_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
-    # Draw the chessboard corners on the image
-    cv2.drawChessboardCorners(color_image, pattern_size, corners, True)
-
-    return color_image
-
-# není potřeba
-def get_object_pose(object_points: np.ndarray, image_points: np.ndarray, 
-                    camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> tuple:
-    """
-    Computes the pose of an object in 3D space given its corresponding 2D image points.
-
-    This function uses the solvePnP algorithm from OpenCV to estimate the rotation and translation
-    vectors that relate the 3D object points to the 2D image points based on the camera calibration data.
-
-    Parameters:
-        object_points (np.ndarray): A set of 3D points in the object coordinate space (Nx3).
-        image_points (np.ndarray): A set of 2D points in the image plane corresponding to the object points (Nx2).
-        camera_matrix (np.ndarray): The camera intrinsic matrix (3x3).
-        dist_coeffs (np.ndarray): The distortion coefficients of the camera.
-
-    Returns:
-        tuple: A tuple containing:
-            - rvec (np.ndarray): The rotation vector (3x1) representing the object's orientation.
-            - tvec (np.ndarray): The translation vector (3x1) representing the object's position.
-
-    Notes:
-        - The rotation vector can be converted to a rotation matrix using cv2.Rodrigues.
-        - The function returns flattened vectors for easier manipulation.
-    """
-    # Solve for the rotation and translation vectors
-    ret, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, dist_coeffs)
-
-    return rvec.flatten(), tvec.flatten()
 
 def save_current_frame(directory: str, frame: np.ndarray) -> str:
     """
@@ -198,3 +105,308 @@ def draw_scalable_rectangle(image: np.ndarray, scale_factor: float) -> Tuple[np.
     cv2.rectangle(output_image, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Red rectangle (BGR)
 
     return output_image, x1, y1, rect_width, rect_height
+
+def connect_to_camera(exist_camera: Optional[pylon.InstantCamera]) -> Optional[pylon.InstantCamera]:
+    """
+    Connects to the first available Basler camera and loads UserSet1 configuration.
+
+    Parameters:
+        exist_camera (Optional[pylon.InstantCamera]): Existing camera object to be deleted if provided
+
+    Returns:
+        Optional[pylon.InstantCamera]: Initialized camera object if connection successful,
+                                      None if connection fails
+
+    Raises:
+        RuntimeError: If no camera is found
+        Exception: For other camera connection or configuration errors
+    """
+    try:
+        if exist_camera:
+            del exist_camera
+             
+        # Get the transport layer factory
+        tl_factory = pylon.TlFactory.GetInstance()
+        
+        # Look for available devices
+        devices = tl_factory.EnumerateDevices()
+        if not devices:
+            raise RuntimeError("No camera found.")
+            
+        # Create and open camera object
+        camera = pylon.InstantCamera(tl_factory.CreateFirstDevice())
+        camera.Open()
+        # Load user-defined camera settings (configured via Pylon Viewer)
+        camera.UserSetSelector.SetValue("UserSet1")
+        camera.UserSetLoad.Execute()
+        camera.Close()
+        
+        return camera
+        
+    except Exception as e:
+        print(f"Error connecting to camera: {e}")
+        return None
+
+def calibrate_camera_with_charuco(
+    image_folder: str, 
+    charuco_detector: cv2.aruco.CharucoDetector, 
+    charuco_board: cv2.aruco.CharucoBoard, 
+    robot_pose_folder: str, 
+    obj_pose_folder: str, 
+    num_dist_coeffs: int = 5
+) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
+    """
+    Performs camera calibration using a ChArUco board and processes related data.
+
+    Parameters:
+        image_folder (str): Path to the folder containing calibration images
+        charuco_detector (cv2.aruco.CharucoDetector): ChArUco board detector
+        charuco_board (cv2.aruco.CharucoBoard): ChArUco board configuration
+        robot_pose_folder (str): Path to the folder containing robot pose data
+        obj_pose_folder (str): Path to the folder where object poses will be saved
+        num_dist_coeffs (int, optional): Number of distortion coefficients. Default is 5
+
+    Returns:
+        Tuple (np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]): Calibration results
+            - camera_matrix: 3x3 camera intrinsic matrix
+            - dist_coeffs: Distortion coefficients
+            - obj_pose_tf_list: List of transformation matrices for object positions
+            - rob_pose_tf_list: List of transformation matrices for robot positions
+
+    Raises:
+        ValueError: If no calibration images found or calibration fails
+        Exception: For other processing errors
+    """
+
+    try:
+        # Load all PNG images from the folder
+        image_list = [
+            cv2.imread(os.path.join(image_folder, file)) 
+            for file in os.listdir(image_folder) if file.endswith(".png")
+        ]
+
+        if not image_list:
+            raise ValueError("No calibration images found in the specified folder.")
+
+        # Initialize lists for detected ChArUco corners and IDs
+        all_charuco_corners = []
+        all_charuco_ids = []
+        valid_indices = []  # List to store valid image indices
+        image_size = None
+
+        # Process each image
+        for idx, image in enumerate(image_list):
+            if image is None:
+                continue  # Skip invalid images
+            
+            if image_size is None:
+                image_size = image.shape[:2]  # Store image size from the first valid image
+
+            # Detect ChArUco corners and IDs
+            charuco_corners, charuco_ids, _, _ = charuco_detector.detectBoard(image)
+
+            if charuco_corners is not None and charuco_ids is not None:
+                all_charuco_corners.append(charuco_corners)
+                all_charuco_ids.append(charuco_ids)
+                valid_indices.append(idx)  # Store index of valid images
+
+        if not all_charuco_corners:
+            raise ValueError("No valid ChArUco corners detected in the images.")
+
+        # Initialize camera matrix and distortion coefficients
+        camera_matrix = np.zeros((3, 3), dtype=np.float64)
+        dist_coeffs = np.zeros((num_dist_coeffs,), dtype=np.float64)
+
+        # Perform camera calibration
+        retval, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
+            all_charuco_corners, 
+            all_charuco_ids, 
+            charuco_board, 
+            image_size, 
+            camera_matrix, 
+            dist_coeffs
+        )
+
+        if not retval:
+            raise ValueError("Camera calibration failed.")
+
+        # Process object positions
+        # Check if the folder is empty
+        save_enabled = not os.listdir(obj_pose_folder)  # True if folder is empty
+        obj_pose_tf_list = []
+        for tvec, rvec in zip(tvecs, rvecs):
+            tvec = tvec.flatten()
+            rvec = rvec.flatten()
+
+            # Create pose vector and convert it to a transformation matrix
+            pose_vector = np.hstack((tvec, rvec))
+            transformation_matrix = utilities.pose_vector_to_tf_matrix(pose_vector)
+
+            # Save transformation matrix only if the folder was initially empty
+            if save_enabled:
+                utilities.save_obj_pose_data(obj_pose_folder, transformation_matrix)
+
+            obj_pose_tf_list.append(transformation_matrix)
+
+        # Load robot positions
+        rob_pose_tf_list = utilities.load_npy_data(robot_pose_folder)
+        rob_pose_tf_list = [rob_pose_tf_list[i] for i in valid_indices]
+
+        return camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list
+
+    except Exception as e:
+        raise e  # Re-raise the exception for external handling
+
+def EstimateMarkerPositionFromImage(
+   image: np.ndarray, 
+   camera_matrix: np.ndarray, 
+   dist_coeffs: np.ndarray, 
+   marker_length: float, 
+   dictionary_name: int = cv2.aruco.DICT_4X4_250
+) -> Tuple[Union[np.ndarray, None], Union[np.ndarray, None], Union[np.ndarray, None], Union[np.ndarray, None], List[np.ndarray]]:
+   """
+   Estimates the positions of ArUco markers in a given image.
+   
+   This function detects ArUco markers in an input image and estimates their 3D poses
+   relative to the camera coordinate system. It returns both the raw detection data
+   and transformation matrices for each detected marker.
+
+   Parameters:
+       image (np.ndarray): Input image in which ArUco markers are to be detected
+       camera_matrix (np.ndarray): Camera intrinsic matrix of shape (3, 3)
+       dist_coeffs (np.ndarray): Distortion coefficients of the camera
+       marker_length (float): The length of the marker's side in the same units as 
+                             used in the camera calibration
+       dictionary_name (int, optional): The predefined ArUco dictionary to use 
+                                       (default: cv2.aruco.DICT_4X4_250)
+
+   Returns:
+       Tuple (Union[np.ndarray, None], Union[np.ndarray, None], Union[np.ndarray, None], 
+              Union[np.ndarray, None], List[np.ndarray]):
+           - Detected marker IDs (or None if no markers detected)
+           - Corner coordinates of detected markers (or None if no markers detected)
+           - Translation vectors of detected markers (or None if no markers detected)
+           - Rotation vectors of detected markers (or None if no markers detected)
+           - List of 4x4 transformation matrices for each detected marker
+   """
+   # Set up the ArUco dictionary and detector parameters
+   aruco_dict = cv2.aruco.getPredefinedDictionary(dictionary_name)
+   parameters = cv2.aruco.DetectorParameters()  # Detector parameters can be fine-tuned
+   detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+
+   # Detect ArUco markers in the image
+   corners, ids, rejected = detector.detectMarkers(image)    
+   transf_matrices = []  # Initialize list to store transformation matrices
+
+   # Process detected markers if any were found
+   if ids is not None:
+       # Estimate the pose of each detected marker
+       rvecs, tvecs, obj_points = cv2.aruco.estimatePoseSingleMarkers(
+           corners, marker_length, camera_matrix, dist_coeffs
+       )
+       
+       # Convert pose data to transformation matrices for each marker
+       for i in range(tvecs.shape[0]):
+           # Combine translation and rotation vectors into a single pose vector
+           pose_vector = np.concatenate((tvecs[i], rvecs[i]), axis=None).astype(np.float32)
+           # Convert pose vector to a 4x4 transformation matrix
+           transf_matrix = utilities.pose_vector_to_tf_matrix(pose_vector)
+           transf_matrices.append(transf_matrix)
+       
+   return ids, corners, tvecs, rvecs, transf_matrices
+
+
+# For chessboard pattern
+
+def find_corners(image: np.ndarray, pattern_size: tuple) -> tuple:
+    """
+    Finds the corners of a chessboard pattern in the given image.
+
+    This function checks if the image is colored and converts it to grayscale if it is.
+    Then, it uses the OpenCV function to find the chessboard corners and refines their positions.
+
+    Parameters:
+        image (np.ndarray): The input image in which to find the chessboard corners.
+        pattern_size (tuple): The number of inner corners per a chessboard row and column,
+            defined as (number_of_inner_corners_x, number_of_inner_corners_y).
+
+    Returns:
+        tuple: A tuple containing:
+            - found (bool): True if the corners were found, False otherwise.
+            - corners (np.ndarray): An array of corner points if found, otherwise None.
+
+    Notes:
+        - The function uses OpenCV's findChessboardCorners and cornerSubPix methods.
+        - It applies corner refinement to enhance the accuracy of the detected corner positions.
+    """
+    # Convert to grayscale if the image is colored (has 3 channels)
+    if len(image.shape) > 2 and image.shape[2] == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Find the chessboard corners in the image
+    found, corners = cv2.findChessboardCorners(image, pattern_size)
+
+    # Define termination criteria for corner refinement
+    term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
+
+    # If corners are found, refine their positions
+    if found:
+        cv2.cornerSubPix(image, corners, (5, 5), (-1, -1), term)
+
+    return found, corners
+
+def draw_corners(image: np.ndarray, corners: np.ndarray, pattern_size: tuple) -> np.ndarray:
+    """
+    Draws the corners of a chessboard pattern on the given image.
+
+    This function converts the input image to color (if it is in grayscale)
+    and then uses OpenCV's drawChessboardCorners function to overlay the detected corners.
+
+    Parameters:
+        image (np.ndarray): The input image on which to draw the chessboard corners.
+        corners (np.ndarray): An array of corner points detected in the image.
+        pattern_size (tuple): The number of inner corners per a chessboard row and column,
+            defined as (number_of_inner_corners_x, number_of_inner_corners_y).
+
+    Returns:
+        np.ndarray: The color image with the chessboard corners drawn on it.
+
+    Notes:
+        - The function assumes the input image is in grayscale or has been converted to grayscale.
+        - The corners are drawn as green dots on the image.
+    """
+    # Convert the image to color if it is grayscale
+    color_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+    # Draw the chessboard corners on the image
+    cv2.drawChessboardCorners(color_image, pattern_size, corners, True)
+
+    return color_image
+
+def get_object_pose(object_points: np.ndarray, image_points: np.ndarray, 
+                    camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> tuple:
+    """
+    Computes the pose of an object in 3D space given its corresponding 2D image points.
+
+    This function uses the solvePnP algorithm from OpenCV to estimate the rotation and translation
+    vectors that relate the 3D object points to the 2D image points based on the camera calibration data.
+
+    Parameters:
+        object_points (np.ndarray): A set of 3D points in the object coordinate space (Nx3).
+        image_points (np.ndarray): A set of 2D points in the image plane corresponding to the object points (Nx2).
+        camera_matrix (np.ndarray): The camera intrinsic matrix (3x3).
+        dist_coeffs (np.ndarray): The distortion coefficients of the camera.
+
+    Returns:
+        tuple: A tuple containing:
+            - rvec (np.ndarray): The rotation vector (3x1) representing the object's orientation.
+            - tvec (np.ndarray): The translation vector (3x1) representing the object's position.
+
+    Notes:
+        - The rotation vector can be converted to a rotation matrix using cv2.Rodrigues.
+        - The function returns flattened vectors for easier manipulation.
+    """
+    # Solve for the rotation and translation vectors
+    ret, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, dist_coeffs)
+
+    return rvec.flatten(), tvec.flatten()

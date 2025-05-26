@@ -9,7 +9,7 @@ from global_data import GlobalData
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities
+from utils import utilities, utilities_camera
 from utils.robotiq_gripper_control import RobotiqGripper
 from ur_robot_calib_params import read_calib_data
 
@@ -70,14 +70,14 @@ class Test_Thread_1(QThread):
                 raise TimeoutError("Failed to capture image.")
             
             # detection of things in the image
-            ids, corners, tvecs, rvecs, transf_matrices = utilities.EstimateMarkerPositionFromImage(image,
+            ids, corners, tvecs, rvecs, transf_matrices = utilities_camera.EstimateMarkerPositionFromImage(image,
                                                                                                    self.global_data.camera_matrix, 
                                                                                                    self.global_data.dist_coeffs, 
                                                                                                    0.022, 
                                                                                                    dictionary_name=cv2.aruco.DICT_4X4_250)
 
             if ids is None or len(ids) == 0:
-                self.logger.warning("Žádné markery nebyly detekovány.")
+                self.logger.warning("No markers were detected.")
                 self.cleanup()
                 return
             

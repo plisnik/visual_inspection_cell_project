@@ -14,7 +14,7 @@ from utils import utilities
 from ur_robot_calib_params import read_calib_data
 
 class Test_Thread_3(QThread):
-    """Thread for test 3. Test  s kalibračním hrotem."""
+    """Thread for test 3. Test wtih calibration tip."""
 
     finished_signal = Signal()  # Signal emitted when test is completed
     stop_signal = Signal()  # Signal for stopping the test
@@ -31,13 +31,13 @@ class Test_Thread_3(QThread):
             # Initialize robot interface
             self.rtde_r = rtde_receive.RTDEReceiveInterface(self.global_data.ip_address)
             
-            # Potřeba mít parametry robota
+            # Need to have robot parameters
             urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
             calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
             a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
             delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
 
-            # zapnutí světla
+            # turning on the light
             if self.global_data.light_test:
                 if not utilities.enable_digital_output(self.global_data.ip_address, self.global_data.light_output_id):
                     raise RuntimeError("Failed to turn on light.")
@@ -59,7 +59,6 @@ class Test_Thread_3(QThread):
             self.camera.UserSetSelector.SetValue("UserSet1")
             self.camera.UserSetLoad.Execute()
             
-            # Snímek
             # Capture an image using the camera
             grab_result = self.camera.GrabOne(2000)  # Timeout 2 second
             if grab_result.GrabSucceeded():
@@ -98,7 +97,7 @@ class Test_Thread_3(QThread):
                 self.cleanup()
                 return
 
-            # pro samostatné zjištění polohy desky - LEVÝ HORNÍ ROH
+            # for independent detection of the plate position - TOP LEFT CORNER
             tvec = np.zeros((3,1))
             rvec = np.zeros((3,1))
             retval, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(charuco_corners, 
@@ -109,7 +108,7 @@ class Test_Thread_3(QThread):
                                                                     rvec, tvec, useExtrinsicGuess=False)
             
             if retval == False:
-                self.logger.warning("Žádná pozice detection board nebyla vypočtena.")
+                self.logger.warning("No detection board position has been calculated.")
                 self.cleanup()
                 return
             
@@ -122,27 +121,26 @@ class Test_Thread_3(QThread):
                 self.cleanup()
                 return  # Exit thread safely
 
-            # Generování bodů podle konfigurace
+            # Generating points by configuration
             if self.global_data.calib_config_test == 0:
                 # Eye-in-Hand
                 self.logger.info("Calibration test 3 Eye-in-Hand process started.")
 
                 self.rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
 
-                # není nutné řešit natočení...
                 tf_matrix_list = utilities.generate_pick_poses(pose_tf)
                 pose_list_global = [first_robot_tf @ self.global_data.X_matrix @ p for p in tf_matrix_list]
 
                 best_pose_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pose_list_global)
 
-                # Offset ve směru lokální osy Z objektu o -1 cm (v jeho souřadném systému)
+                # Offset in the direction of the local Z axis of the object by -1 cm (in its coordinate system)
                 offset_above = np.eye(4)
-                offset_above[:3, 3] = np.array([0, 0, -0.01])  # posun o 1 cm v lokální Z ose  
+                offset_above[:3, 3] = np.array([0, 0, -0.01])  # shift of 1 cm in local Z axis
                 best_pose_tf = best_pose_tf @ offset_above
                 best_pose = utilities.tf_matrix_to_pose_vector(best_pose_tf)
 
                 self.rtde_c.moveL(best_pose, speed=0.1, acceleration=0.15)
-                self.logger.info(f"Pointing to board (levý horní roh)")  
+                self.logger.info(f"Pointing to board (upper left corner)")  
                 time.sleep(2)
 
             else:
@@ -151,20 +149,19 @@ class Test_Thread_3(QThread):
 
                 self.rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
 
-                # není nutné řešit natočení...
                 tf_matrix_list = utilities.generate_pick_poses(pose_tf)
                 pose_list_global = [self.global_data.X_matrix @ p for p in tf_matrix_list]
 
                 best_pose_tf = utilities.find_closest_rotation_matrix(first_TCP_tf, pose_list_global)
 
-                # Offset ve směru lokální osy Z objektu o -1 cm (v jeho souřadném systému)
+                # Offset in the direction of the local Z axis of the object by -1 cm (in its coordinate system)
                 offset_above = np.eye(4)
                 offset_above[:3, 3] = np.array([0, 0, -0.01])
                 best_pose_tf = best_pose_tf @ offset_above
                 best_pose = utilities.tf_matrix_to_pose_vector(best_pose_tf)
 
                 self.rtde_c.moveL(best_pose, speed=0.1, acceleration=0.15)
-                self.logger.info(f"Pointing to board (levý horní roh)")  
+                self.logger.info(f"Pointing to board (upper left corner)")  
                 time.sleep(2)
 
             self.rtde_c.moveL(first_TCP, speed=0.1, acceleration=0.15)
@@ -175,7 +172,7 @@ class Test_Thread_3(QThread):
                 self.cleanup()
                 return  # Exit thread safely
             
-            # vypnutí světla
+            # turning off the light
             utilities.disable_digital_output(self.global_data.ip_address, self.global_data.light_output_id)
 
             # Finalize calibration

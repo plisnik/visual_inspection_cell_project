@@ -9,10 +9,9 @@ from utils import utilities, utilities_camera, robot_interface
 from ur_robot_calib_params import read_calib_data
 
 # ==== PARAMETERS - customize as needed ====
-# ip_address = "192.168.209.133"  # IP address of the robot
-ip_address = "192.168.209.133"  # IP address of the robot
-light_output_id = 0             # Digital Output ID
-light_on = True                 # Turn on the light?
+ip_address = "192.168.209.133"  # Robot IP address
+light_output_id = 0             # Digital output ID
+light_on = True                 # Turn on light?
 
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
@@ -23,7 +22,7 @@ joints_pose_folder = "joints_pose"
 robot_pose_folder = "robot_pose_tf"
 obj_pose_folder = "obj_pose_tf"
 
-# === Parameters of the ChArUco board ===
+# === ChArUco board parameters ===
 square_length = 0.03
 marker_length = 0.022
 board_rows = 6
@@ -36,24 +35,50 @@ charuco_board = cv2.aruco.CharucoBoard(board_size, square_length, marker_length,
 charuco_board.setLegacyPattern(True)
 charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 
-# Parameters for generating points
-scale_factor = 0.75  # factor for the rectangle in the image
-distance = 0.38     # in metre
+# Parameters for point generation
+scale_factor = 0.75  # factor for rectangle in image
+distance = 0.38      # in meters
 # ============================================
 
 def main():
+    """
+    Main function for automatic robot calibration using PLC OPC-UA interface.
+
+    This function orchestrates the complete automatic calibration process including:
+    1. Setting up camera and robot connections using PLC OPC-UA interface
+    2. Creating calibration data directories
+    3. Initial positioning with freedrive mode and visual feedback
+    4. Generating calibration positions based on configuration (eye-in-hand/eye-to-hand)
+    5. Automatically moving robot to each position and capturing data
+    6. Saving pose and joint data for each calibration point
+
+    Returns:
+        None
+
+    Notes:
+        - Uses PLC OPC-UA interface for robot communication
+        - Robot moves automatically to generated calibration positions
+        - Initial position is captured through freedrive mode with visual feedback
+        - Different point generation strategies for eye-in-hand vs eye-to-hand configurations
+        - Camera settings are loaded from UserSet1 (configured via Pylon Viewer)
+        - Light control is optional based on light_on parameter
+        - Press 'q' or ESC to finish initial positioning
+        - Press 's' during positioning to exit program early
+        - Creates new dataset directory with subfolders for organized data storage
+        - Function only collects data, does not perform calibration calculation
+    """
     print("Starting calibration...")
     robot = robot_interface.RobotInterface(ip_address, mode="plc_opcua")
 
-    # Checking whether a folder already exists
+    # Check if dataset folder already exists
     if os.path.exists(data_set):
         print(f"The folder '{data_set}' already exists. Choose a different name or delete it first.")
         sys.exit(1)
 
-    # Create a new folder
+    # Create new dataset folder
     os.makedirs(data_set)
 
-    # Creating subfolders and updating variables to their full paths
+    # Create subfolders and update variables to their full paths
     image_path = os.path.join(data_set, image_folder)
     tcp_path = os.path.join(data_set, tcp_pose_folder)
     joints_path = os.path.join(data_set, joints_pose_folder)
@@ -63,7 +88,7 @@ def main():
     for folder in [image_path, tcp_path, joints_path, robot_path, obj_path]:
         os.makedirs(folder)
 
-    # Switching on the light
+    # Turn on light if enabled
     if light_on:
         if not utilities.enable_digital_output_rb(robot, light_output_id):
             raise RuntimeError("Failed to turn on the light")
@@ -76,7 +101,7 @@ def main():
     camera.UserSetSelector.SetValue("UserSet1")
     camera.UserSetLoad.Execute()
 
-    # Try to enable freedrive mode
+    # Try to enable freedrive mode for initial positioning
     success, message = utilities.enable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode enabled")
@@ -84,7 +109,7 @@ def main():
         raise RuntimeError(f"Failed to enable freedrive mode: {message}")
     time.sleep(1)
 
-    # Start image acquisition
+    # Start image acquisition for initial positioning feedback
     camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly) 
 
     while camera.IsGrabbing():
@@ -92,25 +117,27 @@ def main():
         if grab_result.GrabSucceeded():
             frame = grab_result.Array
             frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2BGR)
+            # Draw scalable rectangle for calibration board positioning
             frame_final, x_rect, y_rect, rect_width, rect_height = utilities_camera.draw_scalable_rectangle(frame,scale_factor)
-            # Shrink for display
+            
+            # Resize for display (25% of original size)
             window_image = cv2.resize(frame_final, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
 
-            # Image display
+            # Display image with positioning guide
             cv2.imshow("Camera", window_image)
 
             key = cv2.waitKey(1) & 0xFF
-            if key in (27, ord("q")):  # ESC or 'q' for quit
+            if key in (27, ord("q")):  # ESC or 'q' to finish positioning
                 image = frame_final.copy()
                 break
-            elif key == ord("s"):  # Press "s" 
-                # Cleanup
+            elif key == ord("s"):  # Press 's' to exit program early
+                # Cleanup camera resources
                 grab_result.Release()
                 camera.StopGrabbing()
                 cv2.destroyAllWindows()
                 exit()
 
-    # Cleanup
+    # Cleanup camera resources
     grab_result.Release()
     camera.StopGrabbing()
     cv2.destroyAllWindows()
@@ -120,20 +147,22 @@ def main():
     else:
         print("Image successfully captured.")
 
-    # Try to disable freedrive mode
+    # Try to disable freedrive mode before automatic movement
     success, message = utilities.disable_freedrive_mode_rb(robot)
     if success:
         print("Freedrive mode disabled")
     else:
         raise RuntimeError(f"Failed to disable freedrive mode: {message}")
-    print("čekám")
+    print("Waiting...")  # Wait for system stabilization
     time.sleep(10)
 
+    # Get image dimensions for point generation
     img_height, img_width, channel = image.shape
 
+    # Generate calibration positions based on configuration
     if calib_config == 0:
-        # Eye-in-Hand calibration
-        source_axis = np.array([0, 0, 1]) # robot axis aligned with the camera axis
+        # Eye-in-Hand calibration - camera moves with robot
+        source_axis = np.array([0, 0, 1])  # robot axis aligned with camera axis
         circle_points = utilities.generate_points_on_circle(20, 0.15, distance, source_axis)
         # circle_points_2 = utilities.generate_points_on_circle(8, 0.05, distance, source_axis)
         plane_positions = utilities.generate_plane_points(
@@ -147,8 +176,8 @@ def main():
         points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points
 
     else:
-        # Eye-to-Hand calibration
-        source_axis = np.array([1, 0, 0]) # robot axis (board) aligned with the camera axis
+        # Eye-to-Hand calibration - camera is stationary
+        source_axis = np.array([1, 0, 0])  # robot axis (board) aligned with camera axis
         # circle_points = utilities.generate_points_on_circle(8, 0.15, distance, source_axis)
         circle_points_2 = utilities.generate_points_on_circle_2(
             img_width,img_height,
@@ -164,28 +193,33 @@ def main():
             x_rect, y_rect,
             source_axis
             )
-        # Combine lists: origin point + valid camera positions + circular points/_2
+        # Combine lists: origin point + valid camera positions + circular points_2
         points = [[0, 0, 0, 0, 0, 0]] + plane_positions + circle_points_2
 
+    # Store initial TCP position for returning at the end
     first_TCP = np.array(robot.get_actual_tcp_pose())
     first_tf = utilities.pose_vector_to_tf_matrix(first_TCP)
     
-    # Calibration files
+    # Load robot calibration files for forward kinematics
     urcontrol_file = 'scripts/ur_robot_calib_params/UR_calibration/urcontrol.conf'
     calibration_file = 'scripts/ur_robot_calib_params/UR_calibration/calibration.conf'
     a, d, alpha = read_calib_data.load_dh_parameters_from_urcontrol(urcontrol_file)
     delta_theta, delta_a, delta_d, delta_alpha = read_calib_data.load_mounting_calibration_parameters(calibration_file)
 
+    # Execute calibration sequence by moving to each generated point
     for i, point in enumerate(points):
-        print(f"\nBod {i+1}/{len(points)}")
+        print(f"\nPoint {i+1}/{len(points)}")
 
+        # Calculate target position relative to initial position
         point_tf = utilities.pose_vector_to_tf_matrix(point)
         point_base_tf = first_tf @ point_tf
         point_base = utilities.tf_matrix_to_pose_vector(point_base_tf)
 
+        # Move robot to calibration position
         robot.moveL(point_base, speed=0.25, acceleration=0.25)
         time.sleep(0.5)
 
+        # Capture image at current position
         grab_result = camera.GrabOne(2000)
         if not grab_result.GrabSucceeded():
             raise TimeoutError("Couldn't get a picture from the camera")
@@ -195,24 +229,30 @@ def main():
         path = utilities_camera.save_current_frame(image_path, image)
         print(f"Saved image: {path}")
 
+        # Get actual robot pose and joint angles
         actual_TCP = np.array(robot.get_actual_tcp_pose())
         actual_joints = np.array(robot.get_actual_joints())
 
+        # Convert to transformation matrices
         tf_matrix = utilities.pose_vector_to_tf_matrix(actual_TCP)
         robot_fk = utilities.fk_with_corrections(actual_joints, a, d, alpha, delta_theta, delta_a, delta_d, delta_alpha)
 
+        # Save pose and joint data
         utilities.save_pose_data(tcp_path, tf_matrix)
         utilities.save_pose_data(robot_path, robot_fk)
         utilities.save_joints_data(joints_path, actual_joints)
 
+    # Close camera after data collection
     camera.Close()
 
+    # Return robot to initial position
     robot.moveL(first_TCP, speed=0.1, acceleration=0.15)
     time.sleep(1)
 
-    # Switch off light
+    # Turn off light if it was enabled
     if light_on:
         utilities.disable_digital_output_rb(robot, light_output_id)
+
 
 if __name__ == "__main__":
     main()

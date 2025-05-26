@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities
+from utils import utilities, utilities_camera
 
 class GlobalData:
     """
@@ -165,7 +165,7 @@ class GlobalData:
 
     def get_camera(self):
         """Create a new camera instance"""
-        self.camera = utilities.connect_to_camera(self.camera)
+        self.camera = utilities_camera.connect_to_camera(self.camera)
         return self.camera
 
     def setup_logger(self, name: str = "GlobalLogger") -> logging.Logger:

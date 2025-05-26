@@ -1,11 +1,10 @@
-import numpy as np
 import cv2
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utils import utilities
+from utils import utilities, utilities_camera
 
-# ==== PARAMETRY – uprav si podle potřeby ====
+# ==== PARAMETERS – adjust as needed ====
 calib_config = 0                # 0 = Eye-in-Hand, 1 = Eye-to-Hand
 
 calib_method = "TSAI"
@@ -26,7 +25,7 @@ image_folder = "cam_pictures"
 robot_pose_folder = "robot_pose_tf"
 obj_pose_folder = "obj_pose_tf"
 
-# === Parametry ChArUco desky ===
+# === ChArUco board parameters ===
 square_length = 0.03
 marker_length = 0.022
 board_rows = 6
@@ -42,18 +41,18 @@ charuco_detector = cv2.aruco.CharucoDetector(charuco_board)
 # ============================================
 
 def main():
-    # Kontrola, zda složka už existuje
+    # Check if the folder already exists
     if not os.path.exists(data_set):
-        print(f"Složka '{data_set}' neexistuje.")
-        sys.exit(1)  # Ukončí program s chybovým kódem
+        print(f"Folder '{data_set}' does not exist.")
+        sys.exit(1)  # Exit program with error code
 
-    # Vytvoření podsložek a aktualizace proměnných na jejich plné cesty
+    # Create subfolders and update variables to their full paths
     image_path = os.path.join(data_set, image_folder)
     robot_path = os.path.join(data_set, robot_pose_folder)
     obj_path = os.path.join(data_set, obj_pose_folder)
 
-    print("Spouštím výpočet kalibrace...")
-    camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities.calibrate_camera_with_charuco(
+    print("Starting calibration calculation...")
+    camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities_camera.calibrate_camera_with_charuco(
         image_path, charuco_detector, charuco_board, robot_path, obj_path
     )
 
@@ -62,9 +61,9 @@ def main():
     else:
         X_matrix, pose_vector = utilities.eye_to_hand_calibration(rob_pose_tf_list, obj_pose_tf_list, calib_method, method_map)
 
-    print("\nKalibrace dokončena.")
-    print(f"Kamera: {camera_matrix}")
-    print(f"koeficienty: {dist_coeffs}")
+    print("\nCalibration completed.")
+    print(f"Camera matrix: {camera_matrix}")
+    print(f"Distortion coefficients: {dist_coeffs}")
     print(f"X_matrix:\n{X_matrix}")
     print(f"Pose vector: {pose_vector}")
 

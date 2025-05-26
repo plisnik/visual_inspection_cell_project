@@ -186,11 +186,11 @@ class CalibrationThread(QThread):
         """Performs the calibration computation."""
         self.logger.info("Processing calibration data...")
         self.progress_signal.emit(90, "Computing calibration values...")
-        camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities.calibrate_camera_with_charuco (self.global_data.image_folder,
-                                                                                                                  self.global_data.charuco_detector,
-                                                                                                                  self.global_data.charuco_board,
-                                                                                                                  self.global_data.robot_pose_folder,
-                                                                                                                  self.global_data.obj_pose_folder)
+        camera_matrix, dist_coeffs, obj_pose_tf_list, rob_pose_tf_list = utilities_camera.calibrate_camera_with_charuco (self.global_data.image_folder,
+                                                                                                                         self.global_data.charuco_detector,
+                                                                                                                         self.global_data.charuco_board,
+                                                                                                                         self.global_data.robot_pose_folder,
+                                                                                                                         self.global_data.obj_pose_folder)
         if self.global_data.calib_config == 0:
             X_matrix, pose_vector = utilities.eye_in_hand_calibration(rob_pose_tf_list, obj_pose_tf_list, self.global_data.calib_method, self.global_data.method_map)
             self.global_data.final_calib_method = self.global_data.calib_method

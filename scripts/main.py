@@ -170,7 +170,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logger.debug("Okno test initial zavřeno")
 
     def test_2(self):
-        pass
         # Initialize progress dialog and test thread
         self.progress_dialog_test = TestProgressDialog(self.global_data)
         self.test_thread = Test_Thread_2(self.global_data)
@@ -201,15 +200,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logger.debug("Okno test initial zavřeno")
 
     def test_3(self):
-        pass
         # Initialize progress dialog and test thread
         self.progress_dialog_test = TestProgressDialog(self.global_data)
         self.test_thread = Test_Thread_3(self.global_data)
         
         # Connect signals
-        self.test_thread.finished_signal.connect(self.test_finished)  # Vlastní slot po dokončení testu
+        self.test_thread.finished_signal.connect(self.test_finished)  # Custom slot after test completion
         self.test_thread.stop_signal.connect(self.test_stopped)
-        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)  # Uživatel chce přerušit test
+        self.progress_dialog_test.stop_signal.connect(self.test_thread.stop)  # User wants to abort the test
 
         # Start the test
         self.logger.debug("Launching test thread")
@@ -220,16 +218,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Start the calibration process and display a progress dialog."""
         self.logger.info("Starting calibration process")
 
-        # Vymazat temrporary data
+        # Clear temporary data directory
         try:
             utilities.delete_folder(self.global_data.temporary_data_set)
         except Exception as e:
             self.logger.error(e)
         
-        # Vytvoření nové temporary_data_set
+        # Create new temporary data directory
         os.makedirs(self.global_data.temporary_data_set)
 
-        # Vytvoření podsložek, pokud neexistují
+        # Create subdirectories if they don't exist
         for sub_dir in self.global_data.sub_dirs:
             os.makedirs(os.path.join(self.global_data.temporary_data_set, sub_dir), exist_ok=True)
 
@@ -237,13 +235,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progress_dialog = CalibrationProgressDialog(self.global_data)
         self.calibration_thread = CalibrationThread(self.global_data)
 
-        # Connect signals
+        # Connect signals between thread and dialog
         self.calibration_thread.progress_signal.connect(self.progress_dialog.update_progress)
         self.calibration_thread.finished_signal.connect(self.calibration_finished)
         self.calibration_thread.stop_signal.connect(self.calibration_stopped)
         self.progress_dialog.stop_signal.connect(self.calibration_thread.stop)  # Allow stopping the process
 
-        # Start calibration
+        # Start calibration thread and show progress dialog
         self.logger.debug("Launching calibration thread")
         self.calibration_thread.start()
         self.progress_dialog.exec()
